@@ -1,4 +1,4 @@
-# component-demo
+# seito-dashboard
 
 ## Project setup
 ```
