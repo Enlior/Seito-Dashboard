@@ -16,22 +16,17 @@
     </div>
   </div> -->
   <div class="center-content">
-  <el-row class="search-form" :gutter="10">
+  <el-row :gutter="5">
     <el-col
-      class="form-item"
-      :span="6"
+      :span="5"
       v-for="(column, index) in activeColumns"
       :key="index"
-      
+      style="margin: 2px; display: flex; align-items: center"
     >
-      <span class="form-label">{{column}}</span>
-    <!-- style="margin: 2px; display: flex; align-items: center" -->
       <el-select
-        class="form-select"
         v-model="columns[column]"
         filterable
         clearable
-        size="large"
         :placeholder="column"
         @change="handleChange"
         @focus="handleFocus(activeColumns[index])"
@@ -104,7 +99,7 @@
 
 <script setup>
 import { reactive, ref, watch, getCurrentInstance, onMounted } from "vue";
-import { ElMessage } from "element-plus";
+import { ElButton, ElMessage } from "element-plus";
 import CollectionInfo from "@/components/dashboard/CollectionInfo.vue";
 import { getFeildListAndCount, getDocumentsByFilterColumn ,getCustomers} from "@/axios/api";
 
@@ -368,7 +363,6 @@ const constrcutObject = (data) => {
 
 .left-content {
   height: 100%;
-  min-height:380px;
 }
 
 .right-content {
@@ -379,38 +373,7 @@ const constrcutObject = (data) => {
 .center-content{
   padding: 10px;
 }
-.search-form{
-  width: 100%;
-}
-.form-item{
-  margin: 5px 0;
-   display: flex !important;
-   
-}
-.form-label{
-    height: 40px;
-    line-height: 40px;
-    background-color: var(--el-fill-color-blank);
-    border-radius: var(--el-border-radius-base);
-    border-top-right-radius: 0;
-    border-bottom-right-radius: 0;
-    box-shadow: 0 0 0 1px var(--el-border-color) inset;
-    border-right: 0;
-    text-align: center;
-    padding: 0px 10px;
-    justify-content: center;
-    text-align: center;
-    background: #e9edf3;
-    font-size: 14px;
-}
-.form-select{
-  flex: 1;
-}
 
-.form-select :deep(.el-select__wrapper){
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0;
-}
 .custom-table :deep(td) {
   padding: 2px 0;
 }

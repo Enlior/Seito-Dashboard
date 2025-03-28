@@ -9,11 +9,20 @@ module.exports = defineConfig({
     proxy: {
       '/api': {
         logLevel: 'info',
-        target: 'http://192.168.8.138:8868/',
+        target: 'http://192.168.8.138:8868/api',
         changeOrigin: true,
         // ws:true,
         pathRewrite: {
           '^/api': ''// 重写路径，去掉'/api'前缀
+        }
+      },
+      '/customers': {
+        logLevel: 'info',
+        target: 'https://1b0hudcpe6.execute-api.ap-east-1.amazonaws.com/customers',
+        changeOrigin: true,
+        // ws:true,
+        pathRewrite: {
+          '^/customers': ''// 重写路径，去掉'/api'前缀
         }
       }
     },

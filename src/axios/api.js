@@ -18,3 +18,4 @@ export const getDocumentsByCustomFeild = p =>get('/api/getDocumentsByCustomFeild
 export const getDocumentsByFilterColumn = p =>post('/api/getDocumentsByFilterColumn',p)
 
 
+export const getCustomers = (param) => post('/customers/search',param);
