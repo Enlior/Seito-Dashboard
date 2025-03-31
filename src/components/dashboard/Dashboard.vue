@@ -71,6 +71,16 @@
         show-overflow-tooltip
         :min-width="120"
       >
+      <el-table-column width="50" >
+        <template #default="scope">
+          <div @click="handleDrawerOpen(scope.row,scope.$index)"  class="table-svg-box">
+            <!-- <el-button type="primary" @click="handleDrawerOpen(scope.row)">打开抽屉</el-button> -->
+            <svg v-if="drawerState[scope.$index] " xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" class="euiIcon euiButtonIcon__icon css-1sl2y4w-euiIcon-s-inherit" role="img" aria-hidden="true"><path d="m1.146 14.146 4-4a.5.5 0 0 1 .765.638l-.057.07-4 4a.5.5 0 0 1-.765-.638l.057-.07 4-4-4 4ZM6.5 8A1.5 1.5 0 0 1 8 9.5v3a.5.5 0 1 1-1 0v-3a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 1 0-1h3Zm2-5a.5.5 0 0 1 .5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 1 1 0 1h-3A1.5 1.5 0 0 1 8 6.5v-3a.5.5 0 0 1 .5-.5Zm1.651 2.146 4-4a.5.5 0 0 1 .765.638l-.057.07-4 4a.5.5 0 0 1-.765-.638l.057-.07 4-4-4 4Z" fill="#1268A7"></path></svg>
+            <svg v-else xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" class="euiIcon euiButtonIcon__icon css-1sl2y4w-euiIcon-s-inherit" role="img" aria-hidden="true"><path fill-rule="evenodd" d="m4.354 12.354 8-8a.5.5 0 0 0-.708-.708l-8 8a.5.5 0 0 0 .708.708ZM1 10.5a.5.5 0 1 1 1 0v3a.5.5 0 0 0 .5.5h3a.5.5 0 1 1 0 1h-3A1.5 1.5 0 0 1 1 13.5v-3Zm14-5a.5.5 0 1 1-1 0v-3a.5.5 0 0 0-.5-.5h-3a.5.5 0 1 1 0-1h3A1.5 1.5 0 0 1 15 2.5v3Z" fill="#1268A7"></path></svg>
+          </div>
+        </template>
+      </el-table-column>
+
         <el-table-column
           v-for="column in activeColumns"
           :key="column"
@@ -99,6 +109,23 @@
       </CollectionInfo>
     </el-col>
   </el-row>
+
+  <el-drawer
+    v-model="drawer"
+    direction="rtl"
+    title="JSON"
+    @close="handleDrawerClose"
+  >
+  <div class="drawer-content">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" class="euiIcon css-1sl2y4w-euiIcon-s-inherit" role="img" aria-hidden="true"><path d="M2 2.729V2a1 1 0 0 1 1-1h2v1H3v12h4v1H3a1 1 0 0 1-1-1V2.729zM14 5V2a1 1 0 0 0-1-1h-2v1h2v3h1zm-1 1h2v9H8V6h5V5H8a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-2v1z" fill="#1268A7"></path><path d="M9 10h5V9H9v1zm0-2h5V7H9v1zm0 4h5v-1H9v1zm0 2h5v-1H9v1zm2-12V1a1 1 0 0 0-1-1H6a1 1 0 0 0-1 1v1h1V1h4v1h1zM5 3h6V2H5v1z" fill="#1268A7"></path></svg>
+    <span @click="copyToClipboard" style="margin-left: 5px; cursor: pointer">Copy to clipboard</span>
+    <div class="json-content">
+    <VueJsonPretty :data="jsonData" showLineNumber></VueJsonPretty>
+    </div>
+  </div>
+
+  </el-drawer>
+
   </div>
 </template>
 
@@ -107,6 +134,8 @@ import { reactive, ref, watch, getCurrentInstance, onMounted } from "vue";
 import { ElMessage } from "element-plus";
 import CollectionInfo from "@/components/dashboard/CollectionInfo.vue";
 import { getFeildListAndCount, getDocumentsByFilterColumn ,getCustomers} from "@/axios/api";
+import VueJsonPretty from "vue-json-pretty";
+import "vue-json-pretty/lib/styles.css";
 
 onMounted(async () => {
   let params = {
@@ -122,7 +151,7 @@ onMounted(async () => {
     }
   }
   let result = await getCustomers(params);
-  console.log('data',result.data)
+
 })
 
 // const state = ref(false);
@@ -133,6 +162,10 @@ let dbName = ref("");
 const activeColumns = ref([]);
 const columns = ref([]);
 
+const drawer = ref(false);
+const jsonData = ref({});
+const drawerState = ref([])
+
 const { proxy } = getCurrentInstance();
 
 const page = reactive({
@@ -140,6 +173,30 @@ const page = reactive({
   pageSize: 25,
   total: 100,
 });
+
+const handleDrawerOpen =(rowData,index)=>{
+  drawer.value = true;
+  jsonData.value = rowData;
+  drawerState.value[index] = !drawerState.value[index];
+}
+
+
+const copyToClipboard =async ()=>{
+  try{
+    await navigator.clipboard.writeText(JSON.stringify(jsonData.value));
+    ElMessage.success("复制成功");
+  }catch(err){
+    ElMessage.error("复制失败");
+
+  }
+  
+}
+
+const handleDrawerClose = () => {
+  drawerState.value.forEach((item, index) => {
+    drawerState.value[index] = false;
+  })
+}
 
 //选中要筛选的el-select的列
 let selectedColumns = [];
@@ -204,6 +261,9 @@ const handleChange = async (val) => {
   page.total = result.data.totalCount;
   let tableData = constrcutObject(result.data.data);
   activeTableData.value = tableData;
+  tableData.forEach((item, index) => {
+    drawerState.value[index] = false;
+  })
 };
 
 const handleClear = async (index) => {
@@ -228,6 +288,9 @@ const handleClear = async (index) => {
   page.total = result.data.totalCount;
   let tableData = constrcutObject(result.data.data);
   activeTableData.value = tableData;
+  tableData.forEach((item, index) => {
+    drawerState.value[index] = false;
+  })
 };
 
 const handleSelectColInfo = async (data, val, val2) => {
@@ -257,6 +320,9 @@ const handleSelectColInfo = async (data, val, val2) => {
   page.total = result.data.totalCount;
   let tableData = constrcutObject(result.data.data);
   activeTableData.value = tableData;
+  tableData.forEach((item, index) => {
+    drawerState.value[index] = false;
+  })
 };
 
 const handleCheckedColumnsChange = async (val) => {
@@ -280,6 +346,9 @@ const handleCheckedColumnsChange = async (val) => {
   page.total = result.data.totalCount;
   let tableData = constrcutObject(result.data.data);
   activeTableData.value = tableData;
+  tableData.forEach((item, index) => {
+    drawerState.value[index] = false;
+  })
 };
 
 // const handlePaginationChange = async () => {
@@ -309,6 +378,9 @@ const handlePagesizeChange = async () => {
   }
   let tableData = constrcutObject(result.data.data);
   activeTableData.value = tableData;
+  tableData.forEach((item, index) => {
+    drawerState.value[index] = false;
+  })
 };
 
 const handleCurrentPageChange = async () => {
@@ -326,6 +398,9 @@ const handleCurrentPageChange = async () => {
   }
   let tableData = constrcutObject(result.data.data);
   activeTableData.value = tableData;
+  tableData.forEach((item, index) => {
+    drawerState.value[index] = false;
+  })
 };
 
 const constrcutObject = (data) => {
@@ -420,5 +495,25 @@ const constrcutObject = (data) => {
   justify-content: center;
   align-items: center;
   margin-top: 10px;
+}
+.drawer-content{
+  text-align: right;
+  color: #1268A7;
+  font-size: 14px;
+}
+
+.json-content{
+  margin-top: 10px;
+}
+
+.drawer-content span:hover{
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.table-svg-box{
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 </style>
