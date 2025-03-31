@@ -1,48 +1,41 @@
 <template>
-  <!-- <div class="top-content">
-    <div class="lefe-nav">
-      <span v-show="infoState"
-        >数据库：<el-tag class="ml-2" type="success">{{ dbName }}</el-tag></span
-      ><span v-show="infoState"
-        >数据表：<el-tag class="ml-2" type="success">{{
-          collectionName
-        }}</el-tag></span
-      >
-    </div>
-    <div class="right-btn">
-      <ElButton @click="state = !state">{{
-        state ? "展示全部" : "修改展示"
-      }}</ElButton>
-    </div>
-  </div> -->
-  <div class="center-content">
+  <div class="main-content">
   <el-row class="search-form" :gutter="10">
     <el-col
       class="form-item"
       :span="6"
-      v-for="(column, index) in activeColumns"
-      :key="index"
-      
+      v-for="(column, index) in showColumns"
+      :key="column"
     >
       <span class="form-label">{{column}}</span>
-    <!-- style="margin: 2px; display: flex; align-items: center" -->
+         <!-- style="margin: 2px; display: flex; align-items: center" -->
       <el-select
         class="form-select"
-        v-model="columns[column]"
+        v-model="selectedValues[column]"
         filterable
         clearable
         size="large"
         :placeholder="column"
         @change="handleChange"
-        @focus="handleFocus(activeColumns[index])"
+        @focus="handleFocus(columns[index])"
         @clear="handleClear(index)"
       >
+
+        <template #header>
+          <el-input
+            v-model="searchInput"
+            placeholder="Starts with..."
+            :prefix-icon="Search"
+            @change="handleSearch"
+          />
+        </template>
+        <!-- v-for="item in tableData.map(item => item[column])" -->
         <el-option
-          v-for="item in nameAndCounts"
-          :key="item.name"
-          :value="item.name"
+          v-for="item in selectOptions[column]"
+          :key="item.value" 
+          :value="item.value"
         >
-          <span style="float: left">{{ item.name }}</span>
+          <span style="float: left">{{ item.label }}</span>
           <span
             style="
               float: right;
@@ -52,18 +45,34 @@
             >{{ item.count }}</span
           >
         </el-option>
+
+        <template #footer>
+          <el-button type="primary" size="small">
+            Include
+          </el-button>
+          <el-button text bg size="small">
+            Exclude
+          </el-button>
+      </template>
       </el-select>
     </el-col>
   </el-row>
-
+  <!-- <el-row style="margin-top: 10px">
+        <el-col :span="24" style="text-align: right">
+          <el-button v-if="showCollapse" type="link" class="search-isOpen" @click="collapsed = !collapsed">
+              {{ collapsed ? '收起' : '展开' }}
+              <component :is="collapsed ? UpOutlined : DownOutlined"></component>
+          </el-button>
+        </el-col>
+      </el-row> -->
   <el-row :gutter="10" style="margin-top: 15px">
-    <!-- <el-col class="left-content" :span="state ? 18 : 24"> -->
-    <el-col class="left-content" :span="18">
+    <el-col class="table-content" :span="24">
       <el-table
-        :data="activeTableData"
+        :data="tableData"
         max-height="500px"
         min-height="500px"
         border
+        stripe 
         size="small"
         :header-cell-style="{ 'text-align': 'center' }"
         :cell-style="{ 'text-align': 'center' }"
@@ -71,13 +80,17 @@
         show-overflow-tooltip
         :min-width="120"
       >
+      <template #empty>
+        <div>{{ $t("table.notdata") }}</div>
+      </template>
         <el-table-column
-          v-for="column in activeColumns"
+          v-for="column in columns"
           :key="column"
           :prop="column"
           :label="column"
           width="120"
-        ></el-table-column>
+        >
+        </el-table-column>
       </el-table>
       <div class="pagination-block">
         <el-pagination
@@ -91,47 +104,65 @@
         />
       </div>
     </el-col>
-    <el-col class="right-content" :span="6">
-      <CollectionInfo
-        @selectColInfo="handleSelectColInfo"
-        @checkedColumnsChange="handleCheckedColumnsChange"
-      >
-      </CollectionInfo>
-    </el-col>
   </el-row>
   </div>
 </template>
 
 <script setup>
-import { reactive, ref, watch, getCurrentInstance, onMounted } from "vue";
-import { ElMessage } from "element-plus";
-import CollectionInfo from "@/components/dashboard/CollectionInfo.vue";
-import { getFeildListAndCount, getDocumentsByFilterColumn ,getCustomers} from "@/axios/api";
+import { reactive, ref, watch, getCurrentInstance, onMounted,computed } from "vue";
+// import { ElMessage } from "element-plus";
+// import CollectionInfo from "@/components/dashboard/CollectionInfo.vue";
+import { getDocumentsByFilterColumn ,getCustomers} from "@/axios/api";
+import { Search } from '@element-plus/icons-vue'
 
+//列信息
+const columns = ref([]);
+const searchInput = ref("");
+const selectedValues = ref({});
+// 表格数据
+const tableData = ref([]);
+const showColumns = ['modelName1','clientCode','officeCode','clientName1','modelType','status','handledBy','warrantyType','reqDateTime','salesmanCountry','server']
 onMounted(async () => {
   let params = {
-    size:3,
+    size:20,
     filterReq:{
       query:[
-        {
-        attribute:'clientCode',
-        operator:'=',
-        value:'S12004'
-        }
+        // {
+        // attribute:'clientCode',
+        // operator:'=',
+        // value:'S12004'
+        // }
       ]
     }
   }
   let result = await getCustomers(params);
   console.log('data',result.data)
+  const items = result.data.items;
+  tableData.value = items;
+  // searchColumnsData.value = items;
+  items.map((v)=>{
+    const keys = Object.keys(v);
+    columns.value = [...new Set([...columns.value, ...keys])];
+    
+  })
 })
 
+const selectOptions = computed(() => {
+  const options = {};
+  columns.value.forEach(column => {
+    const uniqueValues = [...new Set(tableData.value.map(item => item[column]))];
+    options[column] = uniqueValues.map(value => ({ label: value, value }));
+  });
+  return options;
+});
+
 // const state = ref(false);
-const infoState = ref(false);
+// const infoState = ref(false);
 let collectionName = ref("");
-let dbName = ref("");
+// let dbName = ref("");
 // 选中的列
 const activeColumns = ref([]);
-const columns = ref([]);
+// const columns = ref([]);
 
 const { proxy } = getCurrentInstance();
 
@@ -150,60 +181,65 @@ watch(activeColumns, (newVal, oldVal) => {
   //    selectedColumns = []
 });
 
-// 表格数据
-const activeTableData = ref([]);
+
 
 //点击的input框对应的名字和数量
-const nameAndCounts = ref([]);
+// const nameAndCounts = ref([]);
 
-let selectedColumnName = "";
+// let selectedColumnName = "";
 
 const handleFocus = async (val) => {
-  selectedColumnName = val;
-  let params = {
-    collectionName: collectionName.value,
-    currentField: val,
-    fields: activeColumns.value,
-    filters: selectedColumns,
-  };
-  let result = await getFeildListAndCount(params);
+  console.log(val)
+  // selectedColumnName = val;
+  // let params = {
+  //   collectionName: collectionName.value,
+  //   currentField: val,
+  //   fields: activeColumns.value,
+  //   filters: selectedColumns,
+  // };
+  // let result = await getFeildListAndCount(params);
 
-  if (result.code !== 200) {
-    ElMessage.error(result.msg);
-    return;
-  }
-  nameAndCounts.value = result.data;
+  // if (result.code !== 200) {
+  //   ElMessage.error(result.msg);
+  //   return;
+  // }
+  // nameAndCounts.value = result.data;
 };
 
-const handleChange = async (val) => {
-  //通过selectedColumns数组，筛选出field为selectedColumnName的对象，如果value没有值，则构建对象，推入selectedColumns数组
-  page.currentPage = 1;
-  let index = selectedColumns.findIndex(
-    (item) => item.field === selectedColumnName
-  );
-  if (index == -1) {
-    selectedColumns.push({ field: selectedColumnName, value: val });
-  } else {
-    if (!selectedColumns[index].value || selectedColumns[index].value !== val) {
-      selectedColumns[index].value = val;
-    }
-  }
+const handleSearch = () =>{
+  console.log(searchInput)
+}
 
-  let params = {
-    filters: selectedColumns,
-    collectionName: collectionName.value,
-    fields: activeColumns.value,
-    pageSize: page.pageSize,
-    currentPage: page.currentPage,
-  };
-  let result = await getDocumentsByFilterColumn(params);
-  if (result.code !== 200) {
-    new proxy.$tips(result.msg, "error").showMsg();
-    return;
-  }
-  page.total = result.data.totalCount;
-  let tableData = constrcutObject(result.data.data);
-  activeTableData.value = tableData;
+const handleChange = async (val) => {
+  console.log(val)
+  //通过selectedColumns数组，筛选出field为selectedColumnName的对象，如果value没有值，则构建对象，推入selectedColumns数组
+  // page.currentPage = 1;
+  // let index = selectedColumns.findIndex(
+  //   (item) => item.field === selectedColumnName
+  // );
+  // if (index == -1) {
+  //   selectedColumns.push({ field: selectedColumnName, value: val });
+  // } else {
+  //   if (!selectedColumns[index].value || selectedColumns[index].value !== val) {
+  //     selectedColumns[index].value = val;
+  //   }
+  // }
+
+  // let params = {
+  //   filters: selectedColumns,
+  //   collectionName: collectionName.value,
+  //   fields: activeColumns.value,
+  //   pageSize: page.pageSize,
+  //   currentPage: page.currentPage,
+  // };
+  // let result = await getDocumentsByFilterColumn(params);
+  // if (result.code !== 200) {
+  //   new proxy.$tips(result.msg, "error").showMsg();
+  //   return;
+  // }
+  // page.total = result.data.totalCount;
+  // let tableData = constrcutObject(result.data.data);
+  // activeTableData.value = tableData;
 };
 
 const handleClear = async (index) => {
@@ -227,60 +263,60 @@ const handleClear = async (index) => {
   }
   page.total = result.data.totalCount;
   let tableData = constrcutObject(result.data.data);
-  activeTableData.value = tableData;
+  tableData.value = tableData;
 };
 
-const handleSelectColInfo = async (data, val, val2) => {
-  page.currentPage = 1;
-  collectionName.value = data;
-  activeColumns.value = val;
-  infoState.value = true;
-  selectedColumns = [];
+// const handleSelectColInfo = async (data, val, val2) => {
+//   page.currentPage = 1;
+//   collectionName.value = data;
+//   activeColumns.value = val;
+//   infoState.value = true;
+//   selectedColumns = [];
 
-  activeColumns.value.forEach((v) => {
-    columns.value[v] = "";
-  });
+//   activeColumns.value.forEach((v) => {
+//     columns.value[v] = "";
+//   });
 
-  dbName.value = val2;
-  let params = {
-    filters: [],
-    collectionName: collectionName.value,
-    fields: activeColumns.value,
-    pageSize: page.pageSize,
-    currentPage: page.currentPage,
-  };
-  let result = await getDocumentsByFilterColumn(params);
-  if (result.code !== 200) {
-    new proxy.$tips(result.msg, "error").showMsg();
-    return;
-  }
-  page.total = result.data.totalCount;
-  let tableData = constrcutObject(result.data.data);
-  activeTableData.value = tableData;
-};
+//   dbName.value = val2;
+//   let params = {
+//     filters: [],
+//     collectionName: collectionName.value,
+//     fields: activeColumns.value,
+//     pageSize: page.pageSize,
+//     currentPage: page.currentPage,
+//   };
+//   let result = await getDocumentsByFilterColumn(params);
+//   if (result.code !== 200) {
+//     new proxy.$tips(result.msg, "error").showMsg();
+//     return;
+//   }
+//   page.total = result.data.totalCount;
+//   let tableData = constrcutObject(result.data.data);
+//   tableData.value = tableData;
+// };
 
-const handleCheckedColumnsChange = async (val) => {
-  page.currentPage = 1;
-  activeColumns.value = val;
-  activeColumns.value.forEach((v) => {
-    columns.value[v] = "";
-  });
-  let params = {
-    filters: [],
-    collectionName: collectionName.value,
-    fields: activeColumns.value,
-    pageSize: page.pageSize,
-    currentPage: page.currentPage,
-  };
-  let result = await getDocumentsByFilterColumn(params);
-  if (result.code !== 200) {
-    new proxy.$tips(result.msg, "error").showMsg();
-    return;
-  }
-  page.total = result.data.totalCount;
-  let tableData = constrcutObject(result.data.data);
-  activeTableData.value = tableData;
-};
+// const handleCheckedColumnsChange = async (val) => {
+//   page.currentPage = 1;
+//   activeColumns.value = val;
+//   activeColumns.value.forEach((v) => {
+//     columns.value[v] = "";
+//   });
+//   let params = {
+//     filters: [],
+//     collectionName: collectionName.value,
+//     fields: activeColumns.value,
+//     pageSize: page.pageSize,
+//     currentPage: page.currentPage,
+//   };
+//   let result = await getDocumentsByFilterColumn(params);
+//   if (result.code !== 200) {
+//     new proxy.$tips(result.msg, "error").showMsg();
+//     return;
+//   }
+//   page.total = result.data.totalCount;
+//   let tableData = constrcutObject(result.data.data);
+//   tableData.value = tableData;
+// };
 
 // const handlePaginationChange = async () => {
 //     let params = { filters: selectedColumns, "collectionName": collectionName.value, "fields": activeColumns.value, pageSize: page.pageSize, currentPage: page.currentPage }
@@ -308,7 +344,7 @@ const handlePagesizeChange = async () => {
     return;
   }
   let tableData = constrcutObject(result.data.data);
-  activeTableData.value = tableData;
+  tableData.value = tableData;
 };
 
 const handleCurrentPageChange = async () => {
@@ -325,7 +361,7 @@ const handleCurrentPageChange = async () => {
     return;
   }
   let tableData = constrcutObject(result.data.data);
-  activeTableData.value = tableData;
+  tableData.value = tableData;
 };
 
 const constrcutObject = (data) => {
@@ -366,9 +402,13 @@ const constrcutObject = (data) => {
   margin: 3px 0;
 }
 
-.left-content {
+.table-content {
   height: 100%;
   min-height:380px;
+  padding: 5px;
+  border-radius: 6px;
+  background-color: rgb(255, 255, 255);
+  box-shadow: rgba(0, 0, 0, 0.08) 0px 0.9px 4px, rgba(0, 0, 0, 0.06) 0px 2.6px 8px, rgba(0, 0, 0, 0.05) 0px 5.7px 12px, rgba(0, 0, 0, 0.04) 0px 15px 15px;
 }
 
 .right-content {
@@ -376,7 +416,7 @@ const constrcutObject = (data) => {
   height: 100%;
 }
 
-.center-content{
+.main-content{
   padding: 10px;
 }
 .search-form{
@@ -408,6 +448,7 @@ const constrcutObject = (data) => {
 }
 
 .form-select :deep(.el-select__wrapper){
+  border-left: 0;
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
 }
@@ -417,7 +458,7 @@ const constrcutObject = (data) => {
 
 .pagination-block {
   display: flex;
-  justify-content: center;
+  justify-content: left;
   align-items: center;
   margin-top: 10px;
 }

@@ -1,35 +1,7 @@
 {
-  "title": "Qserv HQ Manager System",
+  "title": "Seito Dashboard",
   
-  "menu.test":"Menu",
-  "menu.test.test":"Test",
-  "menu.test.table":"Table",
-  "menu.qServ":"QServ",
-  "menu.setting": "General Setting",
-  "menu.setting.screenSaver": "Screen Saver",
-  "menu.setting.monitorLayout": "Monitor Layout",
-  "menu.setting.outletMonitorLayout": "Outlet Monitor Layout",
-  "menu.setting.selfCheck": "Self Check",
-  "menu.qServOutlets": "QServ Outlets",
-  "menu.qServOutlets.billHdr": "Bill Hdr",
-  "menu.staffOutlet": "Staff Outlet",
-  "menu.staffSetting": "Staff Setting",
-  "menu.staffSetting.staffDtl": "Staff Dtl",
-  "menu.staffSetting.staffRight": "Staff Right",
-  "menu.staffSetting.staffDept": "Staff Dept",
-  "menu.staffSetting.staffPos": "Staff Pos",
-  "menu.outletSetting": "Outlet",
-  "menu.outletSetting.outletDetails": "Outlet Details",
-  "menu.outletSetting.outletGroups": "Outlet Groups",
-  "menu.outletSetting.regions": "Regions",
-  "menu.outletSetting.countries": "Countries",
-  
-  "menu.scheduler": "Scheduler",
-  "menu.media": "Media",
-  "menu.user": "User",
-  "menu.group": "User Right",
-  "menu.equipment": "Equipment",
-  "menu.floorPlanEditor": "Floorplan Editor",
+
   "dept":"department",
 
   "ok": "ok",
@@ -348,9 +320,21 @@
   "cp.resetQueueConfirm": "Confirm to reset ticket number of each queue？",
   "cp.resetQueueSuccess": "Succeed to reset queue",
   "cp.resetQueueFail": "Fail to reset queue",
-  "tp.btn.back": "Back to Menu",
   "tp.err.min": "Please enter at least 1 person to take the number",
   "form.err.queue.num": "The number of people must be between 1 and 99.",
   "tp.err.taking": "Printing, please wait",
-  "api.err.have.user": "This group has associated users."
+  "api.err.have.user": "This group has associated users.",
+
+
+  "modelName1":"Model Name",
+  "clientCode":"Client Code",
+  "officeCode":"Office Code",
+  "clientName1":"Client Name",
+  "modelType":"ModelTypeName",
+  "status":"Status",
+  "handledBy":"Handle By",
+  "warrantyType":"WarrantyType",
+  "reqDateTime":"Expire days",
+  "salesmanCountry":"Country",
+  "server'":"Licence Server"
 }

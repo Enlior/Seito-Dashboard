@@ -1,29 +1,6 @@
 {
-  "title": "Qserve管理系统",
+  "title": "Seito Dashboard",
 
-  "menu.test":"Test",
-  "menu.test.test":"Tabs",
-  "menu.test.table":"表格",
-  "menu.qServ":"QServ",
-  "menu.setting": "基本设定",
-  "menu.setting.screenSaver": "屏幕保护",
-  "menu.setting.monitorLayout": "客户显示屏分割设定",
-  "menu.setting.outletMonitorLayout": "客户显示屏内容设定",
-  "menu.setting.selfCheck": "自动结账设定",
-  "menu.qServOutlets": "店铺设定",
-  "menu.qServOutlets.billHdr": "账单页面及页尾",
-  "menu.staffOutlet": "员工及分店",
-
-  "menu.staffSetting": "员工设定",
-  "menu.staffSetting.staffDtl": "员工资料",
-  "menu.staffSetting.staffRight": "员工权限",
-  "menu.staffSetting.staffDept": "部门",
-  "menu.staffSetting.staffPos": "职位",
-  "menu.outletSetting": "店铺设定",
-  "menu.outletSetting.outletDetails": "分店资料",
-  "menu.outletSetting.outletGroups": "分店组别",
-  "menu.outletSetting.regions": "区域",
-  "menu.outletSetting.countries": "国家",
   "dept":"部门",
   
 
