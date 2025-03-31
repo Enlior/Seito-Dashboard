@@ -100,6 +100,20 @@
           :label="column"
           width="120"
         >
+      <template #header="scope" >
+        <div class="header-container"  @mouseover="showMoreIcon(column)" @mouseout="hideMoreIcon(column)">
+          <span> {{ column }} </span>
+          <el-icon  class="header-icon" v-if="showColumnIcon[column]">
+            <More />
+          </el-icon>
+        </div>
+      </template>
+
+      <!-- <template #default="scope">
+        {{ scope.row[column] }}
+      </template> -->
+
+
         </el-table-column>
       </el-table>
       <div class="pagination-block">
@@ -129,7 +143,6 @@
     <VueJsonPretty :data="jsonData" showLineNumber></VueJsonPretty>
     </div>
   </div>
-
   </el-drawer>
 
   </div>
@@ -179,6 +192,18 @@ onMounted(async () => {
   })
 })
 
+
+
+
+
+const showMoreIcon = (col)=>{
+  showColumnIcon.value[col] = true;
+}
+
+const hideMoreIcon = (col)=>{
+  showColumnIcon.value[col] = false;
+}
+
 const selectOptions = computed(() => {
   const options = {};
   columns.value.forEach(column => {
@@ -199,6 +224,7 @@ const activeColumns = ref([]);
 const drawer = ref(false);
 const jsonData = ref({});
 const drawerState = ref([])
+const showColumnIcon = ref([])
 
 const { proxy } = getCurrentInstance();
 
@@ -236,11 +262,17 @@ const handleDrawerClose = () => {
 let selectedColumns = [];
 
 watch(activeColumns, (newVal, oldVal) => {
-  console.log("activeColumns change",newVal, oldVal);
-  console.log("proxy", proxy);
+  // console.log("activeColumns change",newVal, oldVal);
+  // console.log("proxy", proxy);
   //    selectedColumns = []
 });
 
+watch(columns,(newVal, oldVal)=>{
+  console.log("columns change",newVal, oldVal)
+  newVal.forEach((item, index) => {
+    showColumnIcon.value[index+1] = false;
+  })
+})
 
 
 //点击的input框对应的名字和数量
@@ -455,6 +487,16 @@ const constrcutObject = (data) => {
 </script>
 
 <style scoped>
+.header-icon{
+  margin-left: 10px;
+}
+
+.header-container{
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
+
 .top-content {
   display: flex;
   justify-content: space-between;
