@@ -10,9 +10,9 @@ const instance = axios.create({
   // maxRedirects: 0, // 禁用自动重定向
 });
 
-axios.defaults.validateStatus = function (status) {
-  return status >= 200 && status < 400; // 这样 Axios 不会抛出错误，但也不会自动跟随重定向
-};
+// axios.defaults.validateStatus = function (status) {
+//   return status >= 200 && status < 400; // 这样 Axios 不会抛出错误，但也不会自动跟随重定向
+// };
 // 添加请求拦截器
 instance.interceptors.request.use(
   function (config) {
@@ -27,7 +27,7 @@ instance.interceptors.request.use(
     //   Authorization: "Bearer your-token",
     //   "Content-Type": "multipart/form-data",
     // }; // 上传时携带的请求头
-    config.headers["Content-Type"] = "application/json";
+    // config.headers["Content-Type"] = "application/json";
     return config;
   },
   function (error) {
@@ -49,7 +49,7 @@ instance.interceptors.response.use(
     //   }
     // }
     
-    return response.json();
+    return response;
     // 2xx 范围内的状态码都会触发该函数。
     // 对响应数据做点什么
   },
@@ -134,6 +134,7 @@ const http = {
       instance
         .post(url, params)
         .then((res) => {
+          console.log(res);
           resolve(res.data);
         })
         .catch((err) => {
