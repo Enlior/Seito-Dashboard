@@ -334,7 +334,7 @@
   "status":"Status",
   "handledBy":"Handle By",
   "warrantyType":"WarrantyType",
-  "reqDateTime":"Expire days",
+  "reqDateTime":"ReqDateTime",
   "salesmanCountry":"Country",
   "server'":"Licence Server",
   
@@ -376,5 +376,6 @@
   "col.salesmanName1":"Salesman Name1",
   "col.salesmanName2":"Salesman Name2",
   "col.salesmanCountry":"Salesman Country",
-  "col.server":"Server"
+  "col.server":"Server",
+  "col.remark":"Remark"
 }
