@@ -62,6 +62,15 @@
       </el-row> -->
     <el-row :gutter="10" style="margin-top: 15px">
       <el-col class="table-content" :span="24">
+        <div style="text-align: right;">
+       <DropdownMenuList 
+          placement="bottom"
+          popper-class="header-btn-dropdown"
+          trigger="click"
+          :list="columns"
+          :icon="dropdownIcon"
+       />
+      </div>
         <el-table
           :data="tableData"
           max-height="500px"
@@ -120,42 +129,83 @@
             </template>
           </el-table-column>
 
-        <el-table-column
-          v-for="column in columns"
-          :key="column"
-          :prop="column"
-          :label="column"
-          width="120"
-        >
-      <template #header="scope" >
-        <div class="header-container"  @mouseover="showMoreIcon(column)" @mouseout="hideMoreIcon(column)">
-          <span> {{ column }} </span>
-          <el-icon  class="header-icon" v-if="showColumnIcon[column]">
-            <More />
-          </el-icon>
+          <el-table-column
+            v-for="(column, index) in columns"
+            :key="column"
+            :prop="column"
+            :label="column"
+            width="120"
+          >
+            <template #header="scope">
+              <div class="header-container" >
+                <!-- @mouseenter="showMoreIcon(column,index-1)" -->
+                
+                <span class="column-text"> {{ column }} </span>
+
+                <el-popover trigger="click" :width="150">
+                  <template #reference>
+                    <div class="more-btn" @click="showOptinalMessage">
+                      <el-icon>
+                        <More />
+                      </el-icon>
+                    </div>
+                  </template>
+                  <div v-show="showIconInfo">
+                    <div class="optional-row-message">
+                      <div class="icon-box">
+                        <el-icon><Back /></el-icon>
+                      </div>
+                      <span
+                        class="message-text"
+                        @click="handleOperation(column, 'moveLeft')"
+                        >Move Left</span
+                      >
+                    </div>
+                    <div class="optional-row-message">
+                      <div class="icon-box">
+                        <el-icon><Right /></el-icon>
+                      </div>
+                      <span
+                        class="message-text"
+                        @click="handleOperation(column, 'moveRight')"
+                        >Move Right</span
+                      >
+                    </div>
+                    <div class="optional-row-message">
+                      <div class="icon-box"><CopyIcon /></div>
+                      <span
+                        class="message-text"
+                        @click="handleOperation(column, 'copyName')"
+                        >copy name</span
+                      >
+                    </div>
+                    <div class="optional-row-message">
+                      <div class="icon-box"><CopyIcon /></div>
+                      <span
+                        class="message-text"
+                        @click="handleOperation(column, 'copyColumn')"
+                        >copy column</span
+                      >
+                    </div>
+                  </div>
+                </el-popover>
+              </div>
+            </template>
+          </el-table-column>
+        </el-table>
+        <div class="pagination-block">
+          <el-pagination
+            v-model:current-page="page.currentPage"
+            v-model:page-size="page.pageSize"
+            :page-sizes="[10, 20, 30, 50]"
+            v-model:total="page.total"
+            layout="total, sizes, prev, pager, next, jumper"
+            @size-change="handlePagesizeChange"
+            @current-change="handleCurrentPageChange"
+          />
         </div>
-      </template>
-
-      <!-- <template #default="scope">
-        {{ scope.row[column] }}
-      </template> -->
-
-
-        </el-table-column>
-      </el-table>
-      <div class="pagination-block">
-        <el-pagination
-          v-model:current-page="page.currentPage"
-          v-model:page-size="page.pageSize"
-          :page-sizes="[10, 20, 30, 50]"
-          v-model:total="page.total"
-          layout="total, sizes, prev, pager, next, jumper"
-          @size-change="handlePagesizeChange"
-          @current-change="handleCurrentPageChange"
-        />
-      </div>
-    </el-col>
-  </el-row>
+      </el-col>
+    </el-row>
 
     <DocumentDrawer
       direction="rtl"
@@ -180,6 +230,11 @@ import {
 import { getDocumentsByFilterColumn, getCustomers } from "@/axios/api";
 import { Search } from "@element-plus/icons-vue";
 import DocumentDrawer from "@/components/dashboard/DocumentDrawer.vue";
+import { CopyIcon } from "../../utils/icons";
+import { ElMessage } from "element-plus";
+import DropdownMenuList from "./DropdownMenuList.vue"
+
+const dropdownIcon = ref(require("@/assets/add-remove-columns.png"));
 
 //列信息
 const columns = ref([]);
@@ -200,6 +255,33 @@ const showColumns = [
   "salesmanCountry",
   "server",
 ];
+
+// const state = ref(false);
+// const infoState = ref(false);
+let collectionName = ref("");
+// let dbName = ref("");
+// 选中的列
+const activeColumns = ref([]);
+// const columns = ref([]);
+
+const drawerVisible = ref(false);
+const jsonData = ref({});
+const drawerState = ref([]);
+const showColumnIcon = ref([]);
+
+const { proxy } = getCurrentInstance();
+
+const showIconInfo = ref(false);
+
+const page = reactive({
+  currentPage: 1,
+  pageSize: 25,
+  total: 100,
+});
+
+//选中要筛选的el-select的列
+let selectedColumns = [];
+
 onMounted(async () => {
   let params = {
     size: 20,
@@ -227,13 +309,61 @@ onMounted(async () => {
   });
 });
 
+const handleOperation = async (column, type) => {
+  switch (type) {
+    case "moveLeft":
+      if (column === columns.value[0]) {
+        return;
+      }
+      let leftIndex = columns.value.findIndex((item) => item === column);
+      columns.value = swapElements(columns.value, leftIndex);
+      break;
+    case "moveRight":
+      if (column === columns.value[columns.value.length - 1]) {
+        return;
+      }
+      let rightIndex = columns.value.findIndex((item) => item === column);
+      [columns.value[rightIndex], columns.value[rightIndex + 1]] = [
+        columns.value[rightIndex + 1],
+        columns.value[rightIndex],
+      ];
+      break;
+    case "copyName":
+      try {
+        await navigator.clipboard.writeText(column);
+        ElMessage.success("复制成功");
+      } catch (err) {
+        ElMessage.error("复制失败");
+      }
+      break;
+    case "copyColumn":
+      let copArr = [];
+      selectOptions.value[column].forEach((item) => {
+        copArr.push(item.value);
+      });
+      try {
+        await navigator.clipboard.writeText(JSON.stringify(copArr));
+        ElMessage.success("复制成功");
+      } catch (err) {
+        ElMessage.error("复制失败");
+      }
+  }
+};
 
-const showMoreIcon = (col)=>{
-  showColumnIcon.value[col] = true;
-}
+const swapElements = (arr, index) => {
+  if (index <= 0 || index >= arr.length - 1) {
+    return arr;
+  }
+  [arr[index], arr[index - 1]] = [arr[index - 1], arr[index]];
+  return arr;
+};
 
-const hideMoreIcon = (col)=>{
-  showColumnIcon.value[col] = false;
+const showOptinalMessage = () => {
+  showIconInfo.value = true;
+};
+
+const hideIconInfo = () => {
+  showIconInfo.value = false;
 }
 
 const selectOptions = computed(() => {
@@ -245,27 +375,6 @@ const selectOptions = computed(() => {
     options[column] = uniqueValues.map((value) => ({ label: value, value }));
   });
   return options;
-});
-
-// const state = ref(false);
-// const infoState = ref(false);
-let collectionName = ref("");
-// let dbName = ref("");
-// 选中的列
-const activeColumns = ref([]);
-// const columns = ref([]);
-
-const drawerVisible = ref(false);
-const jsonData = ref({});
-const drawerState = ref([])
-const showColumnIcon = ref([])
-
-const { proxy } = getCurrentInstance();
-
-const page = reactive({
-  currentPage: 1,
-  pageSize: 25,
-  total: 100,
 });
 
 const handleDrawerOpen = (rowData, index) => {
@@ -281,22 +390,13 @@ const handleDrawerClose = () => {
   });
 };
 
-//选中要筛选的el-select的列
-let selectedColumns = [];
 
-watch(activeColumns, (newVal, oldVal) => {
-  console.log("activeColumns change", newVal, oldVal);
-  console.log("proxy", proxy);
-  //    selectedColumns = []
-});
 
-watch(columns,(newVal, oldVal)=>{
-  console.log("columns change",newVal, oldVal)
+watch(columns, (newVal, oldVal) => {
   newVal.forEach((item, index) => {
-    showColumnIcon.value[index+1] = false;
-  })
-})
-
+    showColumnIcon.value.push(false);
+  });
+});
 
 //点击的input框对应的名字和数量
 // const nameAndCounts = ref([]);
@@ -509,14 +609,42 @@ const constrcutObject = (data) => {
 </script>
 
 <style scoped>
-.header-icon{
+.header-icon {
   margin-left: 10px;
+  cursor: pointer;
 }
 
-.header-container{
+.header-icon:hover {
+  cursor: pointer;
+}
+
+.header-container {
   display: flex;
   justify-content: space-around;
   align-items: center;
+  position: relative;
+}
+
+.more-btn {
+  position: absolute;
+  right: 0;
+  display: none;
+  cursor: pointer;
+  margin-left: 10px;
+  flex: 1;
+}
+
+.header-container:hover .more-btn {
+  display: block;
+}
+
+.optional-row-message {
+  display: flex;
+  margin: 3px 0;
+}
+
+.icon-box {
+  margin-right: 5px;
 }
 
 .top-content {
@@ -561,13 +689,21 @@ const constrcutObject = (data) => {
 .main-content {
   padding: 10px;
 }
+
 .search-form {
   width: 100%;
 }
+
+.message-text:hover {
+  cursor: pointer;
+  text-decoration: underline;
+}
+
 .form-item {
   margin: 5px 0;
   display: flex !important;
 }
+
 .form-label {
   height: 40px;
   line-height: 40px;
@@ -584,6 +720,7 @@ const constrcutObject = (data) => {
   background: #e9edf3;
   font-size: 14px;
 }
+
 .form-select {
   flex: 1;
 }
@@ -593,6 +730,7 @@ const constrcutObject = (data) => {
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
 }
+
 .custom-table :deep(td) {
   padding: 2px 0;
 }
@@ -603,6 +741,7 @@ const constrcutObject = (data) => {
   align-items: center;
   margin-top: 10px;
 }
+
 .drawer-content {
   text-align: right;
   color: #1268a7;
