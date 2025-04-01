@@ -22,8 +22,8 @@
             :placeholder="column.label"
             @change="handleChange(column.prop, $event)"
           >
-          <!-- :multiple-limit="1" -->
-          <!-- @focus="handleFocus(columns[index])" -->
+            <!-- :multiple-limit="1" -->
+            <!-- @focus="handleFocus(columns[index])" -->
             <!-- @clear="handleClear(index)" -->
             <template #header>
               <el-input
@@ -54,9 +54,9 @@
               <el-button text bg size="small"> Exclude </el-button>
             </template>
           </el-select>
-      </el-col>
-    </el-row>
-    <!-- <el-row style="margin-top: 10px">
+        </el-col>
+      </el-row>
+      <!-- <el-row style="margin-top: 10px">
         <el-col :span="24" style="text-align: right">
           <el-button v-if="showCollapse" type="link" class="search-isOpen" @click="collapsed = !collapsed">
               {{ collapsed ? '收起' : '展开' }}
@@ -68,22 +68,24 @@
     <div class="center-content">
       <el-row class="table-content" :gutter="10">
         <el-col :span="24">
-          <div style="text-align: right;">
-            <DropdownMenuList 
-                placement="bottom"
-                popper-class="header-btn-dropdown"
-                trigger="click"
-                :list="columns"
-                :icon="dropdownIcon"
+          <div style="text-align: right">
+            <DropdownMenuList
+              placement="bottom"
+              popper-class="header-btn-dropdown"
+              trigger="click"
+              :list="columns"
+              :icon="dropdownIcon"
             />
           </div>
           <el-table
-            :data="tableData"
+            :data="pageTableData"
             max-height="500px"
             min-height="500px"
             stripe
+            :sort-by="sortBy"
+            :sort-orders="sortOrders"
             size="small"
-            :header-cell-style="{'text-align': 'left','color':'#1a1c21'}"
+            :header-cell-style="{ 'text-align': 'left', color: '#1a1c21' }"
             cell-class-name="table-cell"
             class="custom-table"
             show-overflow-tooltip
@@ -141,26 +143,33 @@
               :label="column"
               width="120"
             >
-            <template #header="scope">
-              <div class="header-container" >
-                <!-- @mouseenter="showMoreIcon(column,index-1)" -->
-                
-                <span class="column-text"> {{ t('col.'+column) }} </span>
+              <template #header="scope">
+                <div class="header-container">
+                  <!-- @mouseenter="showMoreIcon(column,index-1)" -->
 
-                <el-popover trigger="click" :width="150">
-                  <template #reference>
-                    <div class="more-btn" @click="showOptinalMessage">
-                      <el-icon>
-                        <More />
-                      </el-icon>
+                  <span class="column-text"> {{ t("col." + column) }} </span>
+
+                  <el-popover
+                    trigger="click"
+                    :width="150"
+                    @hide="handlePopoverHide"
+                  >
+                    <template #reference>
+                      <div class="more-btn" @click="showOptinalMessage">
+                        <el-icon>
+                          <More />
+                        </el-icon>
+                      </div>
+                    </template>
+                    <div v-show="showIconInfo">
+                      <OperationDetail
+                        :column="column"
+                        @handleOperation="handleOperation"
+                      ></OperationDetail>
                     </div>
-                  </template>
-                  <div v-show="showIconInfo">
-                  <OperationDetail :column="column" @handleOperation="handleOperation"></OperationDetail>
+                  </el-popover>
                 </div>
-                </el-popover>
-              </div>
-            </template>
+              </template>
             </el-table-column>
           </el-table>
           <div class="pagination-block">
@@ -173,13 +182,17 @@
               @size-change="handlePagesizeChange"
               @current-change="handleCurrentPageChange"
             /> -->
-          <el-pagination
-            v-model:page-size="page.pageSize"
-            :page-sizes="[10, 20, 30, 50]"
-            layout="total, sizes, prev, pager, next"
-            @size-change="handlePagesizeChange"
-            v-model:total="page.total"
-          />
+            <el-pagination
+              v-model:current-page="page.currentPage"
+              v-model:page-size="page.pageSize"
+              :page-sizes="[10, 25, 50]"
+              layout="total, sizes, prev, pager"
+              @current-change="handleCurrentPageChange"
+              @size-change="handlePagesizeChange"
+              v-model:total="page.total"
+            />
+            <!-- <el-button @click="handleNextPage">下一页</el-button> -->
+            <el-icon  @click="handleNextPage"  class="next-page-icon"><ArrowRightBold /></el-icon>
           </div>
         </el-col>
       </el-row>
@@ -206,15 +219,17 @@ import {
 import { useI18n } from "vue-i18n";
 const { t } = useI18n();
 // import CollectionInfo from "@/components/dashboard/CollectionInfo.vue";
-import { getDocumentsByFilterColumn, getCustomers } from "@/axios/api";
+import {  getCustomers } from "@/axios/api";
 import { Search } from "@element-plus/icons-vue";
 import DocumentDrawer from "@/components/dashboard/DocumentDrawer.vue";
-import { CopyIcon } from "../../utils/icons";
 import { ElMessage } from "element-plus";
-import DropdownMenuList from "./DropdownMenuList.vue"
+import DropdownMenuList from "./DropdownMenuList.vue";
 import OperationDetail from "./OperationDetail.vue";
 
 const dropdownIcon = ref(require("@/assets/add-remove-columns.png"));
+
+const sortBy = ref(null);
+const sortOrders = ref(null);
 
 //列信息
 const columns = ref([]);
@@ -224,6 +239,7 @@ const searchFormData = ref([]);
 const selectOptions = ref([]);
 // 表格数据
 const tableData = ref([]);
+const pageTableData = ref([]);
 const showColumns = [
   "modelName1",
   "clientCode",
@@ -250,6 +266,7 @@ const drawerVisible = ref(false);
 const jsonData = ref({});
 const drawerState = ref([]);
 const showColumnIcon = ref([]);
+let lastEvaluatedkey = {};
 
 const { proxy } = getCurrentInstance();
 
@@ -258,7 +275,7 @@ const showIconInfo = ref(false);
 const page = reactive({
   currentPage: 1,
   pageSize: 25,
-  total: 100,
+  total: 0,
 });
 
 //选中要筛选的el-select的列
@@ -268,46 +285,107 @@ onMounted(async () => {
   loadData();
 });
 
-const loadData = async(searchParam) =>{
+const handleNextPage = async () => {
+  page.currentPage = page.currentPage + 1;
+  if (Math.floor(tableData.value.length / page.pageSize) < page.currentPage) {
+    let params = {
+      size: 100,
+      filterReq: {
+        query: searchInput.value || [],
+      },
+      lastEvaluatedKey: lastEvaluatedkey,
+    };
+    await getCustomers(params)
+      .then((result) => {
+        const items = result.data.items;
+        lastEvaluatedkey = result.data.lastEvaluatedKey;
+        tableData.value = [...tableData.value,...items];
+        page.total = tableData.value.length;
+        pageTableData.value =tableData.value.slice((page.currentPage - 1)*page.pageSize, page.pageSize*page.currentPage)
+        pageTableData.value.forEach((item, index) => {
+        drawerState.value[index] = false;
+         });
+        items.map((v) => {
+          const keys = Object.keys(v);
+          columns.value = [...new Set([...columns.value, ...keys])];
+        });
+        if (searchFormData.value.length === 0) {
+          const optionArr = getSelectOptions();
+          selectOptions.value = optionArr;
+          showColumns.map((v) => {
+            selectedItems.value[v] = [];
+            searchFormData.value.push({
+              label: v,
+              prop: v,
+              options: optionArr[v],
+            });
+          });
+        }
+      })
+      .catch((err) => {
+        console.error(err?.msg);
+      });
+  } else {
+    pageTableData.value = tableData.value.slice(
+      (page.currentPage - 1)*page.pageSize,
+      page.pageSize*page.currentPage
+    );
+    pageTableData.value.forEach((item, index) => {
+    drawerState.value[index] = false;
+  });
+  }
+};
+
+const handlePopoverHide = () => {
+  showIconInfo.value = false;
+};
+
+const loadData = async (searchParam) => {
   let params = {
-    size: 20,
+    size: 100,
     filterReq: {
       query: searchParam || [],
     },
   };
-  await getCustomers(params).then((result)=>{
-    console.log("data", result.data);
-    const items = result.data.items;
-    tableData.value = items;
-    tableData.value.forEach((item, index) => {
-      drawerState.value[index] = false;
-    });
-    items.map((v) => {
-      const keys = Object.keys(v);
-      columns.value = [...new Set([...columns.value, ...keys])];
-    });
-    if(searchFormData.value.length === 0){
-      const optionArr = getSelectOptions();
-      selectOptions.value = optionArr;
-      showColumns.map((v)=>{
-        selectedItems.value[v] = [];
-        searchFormData.value.push({
-          label:v,
-          prop:v,
-          options:optionArr[v],
-        })
+  await getCustomers(params)
+    .then((result) => {
+      const items = result.data.items;
+      lastEvaluatedkey = result.data.lastEvaluatedKey;
+      tableData.value = items;
+      page.total = tableData.value.length;
+      pageTableData.value = tableData.value.slice(
+        (page.currentPage - 1)*page.pageSize,
+        page.pageSize*page.currentPage
+      );
+      pageTableData.value.forEach((item, index) => {
+        drawerState.value[index] = false;
       });
-      console.log('showColumns',selectedItems.value,columns.value)
-      
-      console.log('options',searchFormData.value)
-    }
-  }).catch((err)=>{
-    console.error(err?.msg)
-  });
-  
-}
+      items.map((v) => {
+        const keys = Object.keys(v);
+        columns.value = [...new Set([...columns.value, ...keys])];
+      });
+      if (searchFormData.value.length === 0) {
+        const optionArr = getSelectOptions();
+        selectOptions.value = optionArr;
+        showColumns.map((v) => {
+          selectedItems.value[v] = [];
+          searchFormData.value.push({
+            label: v,
+            prop: v,
+            options: optionArr[v],
+          });
+        });
+        console.log("showColumns", selectedItems.value, columns.value);
 
-const handleOperation = async ({column, operation}) => {
+        console.log("options", searchFormData.value);
+      }
+    })
+    .catch((err) => {
+      console.error(err?.msg);
+    });
+};
+
+const handleOperation = async ({ column, operation }) => {
   switch (operation) {
     case "moveLeft":
       if (column === columns.value[0]) {
@@ -346,12 +424,23 @@ const handleOperation = async ({column, operation}) => {
         ElMessage.error("复制失败");
       }
       break;
-      case "sortAsc":
-        tableData.value.sort((a, b) => {
-          
-        })
-   
-    }
+    case "sortAsc":
+      sortBy.value = column;
+      sortOrders.value = "ascending";
+      tableData.value.sort((a, b) => {
+        return a[column] > b[column] ? 1 : -1;
+      });
+      break;
+    case "sortDesc":
+      sortBy.value = column;
+      sortOrders.value = "descending";
+      tableData.value.sort((a, b) => {
+        return a[column] < b[column] ? 1 : -1;
+      });
+      break;
+    default:
+      break;
+  }
 };
 
 const swapElements = (arr, index) => {
@@ -366,10 +455,6 @@ const showOptinalMessage = () => {
   showIconInfo.value = true;
 };
 
-const hideIconInfo = () => {
-  showIconInfo.value = false;
-}
-
 // const selectOptions = computed(() => {
 const getSelectOptions = () => {
   const options = {};
@@ -377,7 +462,10 @@ const getSelectOptions = () => {
     const uniqueValues = [
       ...new Set(tableData.value.map((item) => item[column])),
     ];
-    options[column] = uniqueValues.map((value) => ({label: column, value:value }));
+    options[column] = uniqueValues.map((value) => ({
+      label: column,
+      value: value,
+    }));
   });
   return options;
 };
@@ -395,8 +483,6 @@ const handleDrawerClose = () => {
   });
 };
 
-
-
 watch(columns, (newVal, oldVal) => {
   newVal.forEach((item, index) => {
     showColumnIcon.value.push(false);
@@ -407,65 +493,37 @@ const handleSearch = () => {
   console.log(searchInput);
 };
 
-
-const handleChange = async (column,selectVal) => {
-  console.log('selectVal',selectVal,selectedItems.value);
+const handleChange = async (column, selectVal) => {
+  console.log("selectVal", selectVal, selectedItems.value);
   const searchParam = [];
 
-  showColumns.map((column)=>{
+  showColumns.map((column) => {
     const item = selectedItems.value[column];
     const val = Object.values(item);
-    val.map((v)=>{
+    val.map((v) => {
       const params = {
-        attribute:column,
-        operator:'=',
-        value:v
-      }
+        attribute: column,
+        operator: "=",
+        value: v,
+      };
       searchParam.push(params);
-    })
-    
-  })
-    
+    });
+  });
+
   loadData(searchParam);
 };
 
 const handlePagesizeChange = async () => {
   page.currentPage = 1;
-  let params = {
-    filters: selectedColumns,
-    collectionName: collectionName.value,
-    fields: activeColumns.value,
-    pageSize: page.pageSize,
-    currentPage: page.currentPage,
-  };
-  let result = await getCustomers(params);
-  if (result.code !== 200) {
-    new proxy.$tips(result.msg, "error").showMsg();
-    return;
-  }
-  let tableData = constrcutObject(result.data.data);
-  tableData.value = tableData;
-  tableData.forEach((item, index) => {
+  pageTableData.value = tableData.value.slice((page.currentPage - 1)*page.pageSize, page.pageSize*page.currentPage)
+  pageTableData.value .forEach((item, index) => {
     drawerState.value[index] = false;
   });
 };
 
 const handleCurrentPageChange = async () => {
-  let params = {
-    filters: selectedColumns,
-    collectionName: collectionName.value,
-    fields: activeColumns.value,
-    pageSize: page.pageSize,
-    currentPage: page.currentPage,
-  };
-  let result = await getCustomers(params);
-  if (result.code !== 200) {
-    new proxy.$tips(result.msg, "error").showMsg();
-    return;
-  }
-  let tableData = constrcutObject(result.data.data);
-  tableData.value = tableData;
-  tableData.forEach((item, index) => {
+  pageTableData.value =tableData.value.slice((page.currentPage - 1)*page.pageSize, page.pageSize*page.currentPage)
+  pageTableData.value.forEach((item, index) => {
     drawerState.value[index] = false;
   });
 };
@@ -533,8 +591,8 @@ const constrcutObject = (data) => {
   padding-bottom: 4px;
   padding-top: 8px;
 }
-.center-content{
-  padding:5px 8px;
+.center-content {
+  padding: 5px 8px;
 }
 
 .right-btn {
@@ -559,18 +617,22 @@ const constrcutObject = (data) => {
   padding-right: 0px !important;
 }
 
-:deep(.table-content .el-table tr){
+:deep(.table-content .el-table tr) {
   height: 32px;
 }
 
-:deep(.table-content .el-table tr.el-table__row--striped td.el-table__cell){
+:deep(.table-content .el-table tr.el-table__row--striped td.el-table__cell) {
   background-color: #f5f7fa;
 }
-
 
 .right-content {
   border: 1px solid #eee;
   height: 100%;
+}
+
+.next-page-icon{
+  cursor: pointer;
+  margin-left: 5px;
 }
 
 .search-form {
@@ -594,7 +656,7 @@ const constrcutObject = (data) => {
   border-radius: 6px;
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
-  border:1px solid #d3dae6e6;
+  border: 1px solid #d3dae6e6;
   border-right: 0;
   text-align: center;
   padding: 0px 12px;
@@ -613,7 +675,7 @@ const constrcutObject = (data) => {
 .form-select :deep(.el-select__wrapper) {
   height: 38px;
   line-height: 38px;
-  border:1px solid #d3dae6e6;
+  border: 1px solid #d3dae6e6;
   border-left: 0;
   box-shadow: none;
   border-radius: 6px;
@@ -621,13 +683,13 @@ const constrcutObject = (data) => {
   border-bottom-left-radius: 0;
 }
 
-.custom-table{
+.custom-table {
   border-radius: 6px;
 }
 
-.table-cell{
-  text-align: 'center';
-  color:'#343741';
+.table-cell {
+  text-align: "center";
+  color: "#343741";
 }
 
 .pagination-block {
