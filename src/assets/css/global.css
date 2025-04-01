@@ -1,0 +1,42 @@
+.no-selected {
+    touch-action: pan-x pan-y; /* 限制触摸操作,防止触碰设备缩放选择 */
+    -webkit-touch-callout: none; /* iOS Safari */
+    -webkit-user-select: none; /* Safari */
+    -khtml-user-select: none; /* Konqueror HTML */
+    -moz-user-select: none; /* Old versions of Firefox */
+    -ms-user-select: none; /* Internet Explorer/Edge */
+    user-select: none; /* Non-prefixed version, currently supported by Chrome, Edge, Opera and Firefox */
+}
+
+/* CSS */
+html {
+    font-size: 12px; /* 默认字体大小 */
+}
+  
+@media (max-width: 768px) {
+    html {
+      font-size: 14px; /* 小屏幕设备 */
+    }
+}
+  
+@media (min-width: 1200px) {
+    html {
+      font-size: 18px; /* 大屏幕设备 */
+    }
+}
+
+:root {
+    --font-size: 12px;
+    font-size: var(--font-size);
+}
+
+/* 组件使用了CSS变量 */
+.el-button,
+.el-table,
+.el-input,
+.el-menu,.el-menu-item,.el-sub-menu__title,
+.el-select
+.el-tab,.el-tabs__item,
+.el-dropdown,.el-checkbox__label{
+    font-size: var(--font-size);
+}
