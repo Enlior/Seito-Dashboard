@@ -156,63 +156,8 @@
                     </div>
                   </template>
                   <div v-show="showIconInfo">
-                    <div class="optional-row-message">
-                      <div class="icon-box">
-                        <el-icon><Top /></el-icon>
-                      </div>
-                      <span
-                        class="message-text"
-                        @click="handleOperation(column, 'sortAsc')"
-                        >Sort A-Z</span
-                      >
-                    </div>
-                    <div class="optional-row-message">
-                      <div class="icon-box">
-                        <el-icon><Bottom /></el-icon>
-                      </div>
-                      <span
-                        class="message-text"
-                        @click="handleOperation(column, 'sortDesc')"
-                        >Sort Z-A</span
-                      >
-                    </div>
-                    <div class="optional-row-message">
-                      <div class="icon-box">
-                        <el-icon><Back /></el-icon>
-                      </div>
-                      <span
-                        class="message-text"
-                        @click="handleOperation(column, 'moveLeft')"
-                        >Move Left</span
-                      >
-                    </div>
-                    <div class="optional-row-message">
-                      <div class="icon-box">
-                        <el-icon><Right /></el-icon>
-                      </div>
-                      <span
-                        class="message-text"
-                        @click="handleOperation(column, 'moveRight')"
-                        >Move Right</span
-                      >
-                    </div>
-                    <div class="optional-row-message">
-                      <div class="icon-box"><CopyIcon /></div>
-                      <span
-                        class="message-text"
-                        @click="handleOperation(column, 'copyName')"
-                        >copy name</span
-                      >
-                    </div>
-                    <div class="optional-row-message">
-                      <div class="icon-box"><CopyIcon /></div>
-                      <span
-                        class="message-text"
-                        @click="handleOperation(column, 'copyColumn')"
-                        >copy column</span
-                      >
-                    </div>
-                  </div>
+                  <OperationDetail :column="column" @handleOperation="handleOperation"></OperationDetail>
+                </div>
                 </el-popover>
               </div>
             </template>
@@ -265,6 +210,7 @@ import DocumentDrawer from "@/components/dashboard/DocumentDrawer.vue";
 import { CopyIcon } from "../../utils/icons";
 import { ElMessage } from "element-plus";
 import DropdownMenuList from "./DropdownMenuList.vue"
+import OperationDetail from "./OperationDetail.vue";
 
 const dropdownIcon = ref(require("@/assets/add-remove-columns.png"));
 
@@ -359,8 +305,8 @@ const loadData = async(searchParam) =>{
   
 }
 
-const handleOperation = async (column, type) => {
-  switch (type) {
+const handleOperation = async ({column, operation}) => {
+  switch (operation) {
     case "moveLeft":
       if (column === columns.value[0]) {
         return;
