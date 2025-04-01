@@ -12,7 +12,8 @@
     @close="handleClose"
   >
     <div class="drawer-content">
-      <svg
+      <div class="drawer-copy-info">
+      <!-- <svg
         xmlns="http://www.w3.org/2000/svg"
         width="16"
         height="16"
@@ -29,10 +30,12 @@
           d="M9 10h5V9H9v1zm0-2h5V7H9v1zm0 4h5v-1H9v1zm0 2h5v-1H9v1zm2-12V1a1 1 0 0 0-1-1H6a1 1 0 0 0-1 1v1h1V1h4v1h1zM5 3h6V2H5v1z"
           fill="#1268A7"
         ></path>
-      </svg>
+      </svg> -->
+      <copyIcon></copyIcon>
       <span @click="copyToClipboard" style="margin-left: 5px; cursor: pointer"
         >Copy to clipboard</span
       >
+    </div>
       <div class="json-content">
         <VueJsonPretty :data="data" showLineNumber></VueJsonPretty>
       </div>
@@ -44,6 +47,7 @@ import { ref, defineProps, defineEmits, watch } from "vue";
 import { ElMessage } from "element-plus";
 import VueJsonPretty from "vue-json-pretty";
 import "vue-json-pretty/lib/styles.css";
+import {CopyIcon} from "../../utils/icons"
 const props = defineProps({
   drawerVisible: {
     type: Boolean,
@@ -101,3 +105,13 @@ const copyToClipboard = async () => {
   }
 };
 </script>
+<style >
+  .drawer-content span:hover {
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.drawer-copy-info{
+  text-align: right;
+}
+</style>
