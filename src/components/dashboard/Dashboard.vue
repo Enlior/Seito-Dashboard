@@ -9,7 +9,7 @@
           v-for="column in searchFormData"
           :key="column"
         >
-          <span class="form-label">{{ column.label }}</span>
+          <span class="form-label">{{ t(column.label) }}</span>
           <el-select
             class="form-select"
             v-model="selectedItems[column.prop]"
@@ -146,7 +146,7 @@
               <div class="header-container" >
                 <!-- @mouseenter="showMoreIcon(column,index-1)" -->
                 
-                <span class="column-text"> {{ column }} </span>
+                <span class="column-text"> {{ t('col.'+column) }} </span>
 
                 <el-popover trigger="click" :width="150">
                   <template #reference>
@@ -232,6 +232,8 @@ import {
   onMounted,
   // computed,
 } from "vue";
+import { useI18n } from "vue-i18n";
+const { t } = useI18n();
 // import CollectionInfo from "@/components/dashboard/CollectionInfo.vue";
 import {  getCustomers } from "@/axios/api";
 import { Search } from "@element-plus/icons-vue";
@@ -323,7 +325,7 @@ const loadData = async(searchParam) =>{
           options:optionArr[v],
         })
       });
-      console.log('showColumns',selectedItems.value)
+      console.log('showColumns',selectedItems.value,columns.value)
       
       console.log('options',searchFormData.value)
     }
