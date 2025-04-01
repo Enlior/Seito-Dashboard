@@ -153,6 +153,26 @@
                   <div v-show="showIconInfo">
                     <div class="optional-row-message">
                       <div class="icon-box">
+                        <el-icon><Top /></el-icon>
+                      </div>
+                      <span
+                        class="message-text"
+                        @click="handleOperation(column, 'sortAsc')"
+                        >Sort A-Z</span
+                      >
+                    </div>
+                    <div class="optional-row-message">
+                      <div class="icon-box">
+                        <el-icon><Bottom /></el-icon>
+                      </div>
+                      <span
+                        class="message-text"
+                        @click="handleOperation(column, 'sortDesc')"
+                        >Sort Z-A</span
+                      >
+                    </div>
+                    <div class="optional-row-message">
+                      <div class="icon-box">
                         <el-icon><Back /></el-icon>
                       </div>
                       <span
@@ -194,7 +214,7 @@
           </el-table-column>
         </el-table>
         <div class="pagination-block">
-          <el-pagination
+          <!-- <el-pagination
             v-model:current-page="page.currentPage"
             v-model:page-size="page.pageSize"
             :page-sizes="[10, 20, 30, 50]"
@@ -202,6 +222,13 @@
             layout="total, sizes, prev, pager, next, jumper"
             @size-change="handlePagesizeChange"
             @current-change="handleCurrentPageChange"
+          /> -->
+          <el-pagination
+            v-model:page-size="page.pageSize"
+            :page-sizes="[10, 20, 30, 50]"
+            layout="total, sizes, prev, pager, next"
+            @size-change="handlePagesizeChange"
+            v-model:total="page.total"
           />
         </div>
       </el-col>
