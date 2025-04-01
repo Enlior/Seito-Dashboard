@@ -132,7 +132,7 @@
   "l.t.QUEUE": "隊列資訊",
   "l.t.MEDIA": "媒體",
   "tip.confirm": "確認",
-  "move.column": "新增/刪除欄位",
+  "move.column": "移動欄位",
   "userStatus.N": "正常",
   "userStatus.D": "刪除",
   "userStatus.C": "暫停",

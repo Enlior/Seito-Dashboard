@@ -1,5 +1,5 @@
 <template>
-  <div class="container">
+  <div>
     <Dashboard/>
   </div>
 </template>
@@ -9,10 +9,8 @@ import Dashboard from '@/components/dashboard/Dashboard.vue'
 </script>
 
 <style>
-.container {
-  width: 100%;
+.content {
   height: 100%;
-  overflow: hidden;
 }
 </style>
->
+

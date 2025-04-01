@@ -5,7 +5,7 @@
       <el-dropdown-menu>
         <el-checkbox-group @change="changeColumnShow" v-model="checkList">
             <VueDraggable handle=".handle" ref="el" :modelValue="list" @onSort="onUpdate" @update="onUpdate">
-              <el-dropdown-item v-for="column in filterColumns"  :key="column.prop" style="display: flex;justify-content: space-between;"> 
+              <el-dropdown-item v-for="column in filterColumns"  :key="column" style="display: flex;justify-content: space-between;"> 
                 <el-checkbox :label="column?$t('col.'+column):$t(column)" :value="column" />
                 <svg class="handle" xmlns="http://www.w3.org/2000/svg" width="0.88em" height="1em" viewBox="0 0 448 512"><path fill="#1268A7" d="M0 96c0-17.7 14.3-32 32-32h384c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32m0 160c0-17.7 14.3-32 32-32h384c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32m448 160c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32h384c17.7 0 32 14.3 32 32"></path></svg>
               </el-dropdown-item>
@@ -17,7 +17,7 @@
 </template>
 
 <script setup>
-import { ref, defineProps, defineEmits, watch,computed,onMounted } from 'vue';
+import { ref, defineProps, watch,computed,onMounted } from 'vue';
 import { VueDraggable } from 'vue-draggable-plus'
 
 const props = defineProps({
@@ -54,7 +54,7 @@ const onUpdate = (evt) => {
 };
 
 const checkList = ref([])
-const initCheckList = (evt) => {
+const initCheckList = () => {
   checkList.value = [];
   for(let column of props.list) {
       // if(column.isShow)
@@ -65,7 +65,7 @@ const initCheckList = (evt) => {
 const changeColumnShow = ()=> {
   console.log("change:"+checkList.value)
   for(let column of props.list) {
-    if(checkList.value.indexOf(columnn )!=-1 ) {
+    if(checkList.value.indexOf(column)!=-1 ) {
       column.isShow = true;
     } else {
       column.isShow = false;
@@ -80,8 +80,8 @@ const filterColumns = computed(() => {
 
 watch(
   () => props.list,
-  (newVal) => {
-    initCheckList()
+  () => {
+    initCheckList();
   }
 )
 
