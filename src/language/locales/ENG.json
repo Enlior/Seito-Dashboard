@@ -379,6 +379,18 @@
   "col.remark":"Remark",
   "col.PK":"PK",
   "col.SK":"SK",
+
+  "option":"option",
+  "Include":"Include",
+  "Exclude":"Exclude",
+  "btn.showTips":"Show only selected options",
+  "btn.hideTips":"Show All options",
+  "btn.noDataSort":"Sorting is ignored when 'Show onlyselected' is true",
+  "btn.sort":"Sort",
+  "btn.sortAsc":"Ascending",
+  "btn.sortDesc":"Descending",
+  "noSelect":"You have no selections",
+  
   "dashboard.totleRecord":"Total",
   "dashboard.pageSize":"page",
   "dashboard.copyToClipboard":"Copy To Clipboard",
