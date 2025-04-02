@@ -1,6 +1,6 @@
 <template>
   <div class="main-content no-selected">
-    <div class="top-content">
+    <div ref="searchHeader" class="top-content">
       <el-row class="search-form" :gutter="10">
         <el-col
           class="form-item"
@@ -11,59 +11,54 @@
           <span class="form-label">{{ t(column.label) }}</span>
           <el-select
             class="form-select"
-            v-model="selectedItems[column.prop]"
+            v-model="column.value"
             value-key="value"
             multiple
-            collapse-tags
-            collapse-tags-tooltip
-            filterable
             clearable
             size="large"
+            :offset="0"
+            :show-arrow="false"
             :placeholder="column.label"
-            @change="handleChange(column.prop, $event)"
+            :fit-input-width="true"
+            @change="handleChange(column)"
+            @visible-change="handleSelectToggle(column, $event)"
           >
             <!-- :multiple-limit="1" -->
             <!-- @focus="handleFocus(columns[index])" -->
             <!-- @clear="handleClear(index)" -->
             <template #header>
               <el-input
-                v-model="searchInput"
+                v-model="column.searchInput"
+                size="default"
                 placeholder="Starts with..."
                 :prefix-icon="Search"
-                @change="handleSearch"
+                clearable
+                @input="handleSearch(column.searchInput)"
               />
             </template>
             <el-option
-              v-for="item in column.options"
+              v-for="item in filteredOptions"
               :key="item.value"
               :value="item.value"
             >
-              <span style="float: left">{{ item.value }}</span>
-              <!-- <span
-                style="
-                  float: right;
-                  color: var(--el-text-color-secondary);
-                  font-size: 13px;
-                "
-                >{{ item.count }}</span
-              > -->
+              <span class="option-text">{{ item.value }}</span>
             </el-option>
-
+            <template #tag>
+              <div class="select-tag">
+              <span v-if="column.value.length" class="tag-status">{{column.isInclude?'':'NOT'}}</span>
+              <span class="tag-label" :title="column.value.join(',')">{{column.value.join(',')}}</span>
+              <span v-if="column.value.length" class="tag-count">{{column.value.length}}</span>
+              </div>
+            </template>
             <template #footer>
-              <el-button type="primary" size="small"> Include </el-button>
-              <el-button text bg size="small"> Exclude </el-button>
+              <el-radio-group v-model="column.isInclude" @change="handleChange(column)" size="default" class="radio-group" border-color="none" text-color="#ffffff" fill="#69707d">
+                <el-radio-button label="Include" :value="true" />
+                <el-radio-button label="Exclude" :value="false" />
+              </el-radio-group>
             </template>
           </el-select>
         </el-col>
       </el-row>
-      <!-- <el-row style="margin-top: 10px">
-        <el-col :span="24" style="text-align: right">
-          <el-button v-if="showCollapse" type="link" class="search-isOpen" @click="collapsed = !collapsed">
-              {{ collapsed ? '收起' : '展开' }}
-              <component :is="collapsed ? UpOutlined : DownOutlined"></component>
-          </el-button>
-        </el-col>
-      </el-row> -->
     </div>
     <div class="center-content">
       <el-row class="table-content" :gutter="10">
@@ -78,9 +73,9 @@
             />
           </div>
           <el-table
+            ref="mainTable"
             :data="pageTableData"
-            max-height="500px"
-            min-height="500px"
+            :height="tableHeight"
             stripe
             :sort-by="sortBy"
             :sort-orders="sortOrders"
@@ -137,16 +132,15 @@
             </el-table-column>
 
             <el-table-column
-              v-for="(column, index) in columns"
+              v-for="column in columns"
               :key="column"
               :prop="column"
               :label="column"
               width="120"
             >
-              <template #header="scope">
-                <div class="header-container">
-                  <!-- @mouseenter="showMoreIcon(column,index-1)" -->
-
+            <template #header>
+              <div class="header-container" >
+                <!-- @mouseenter="showMoreIcon(column,index-1)" -->
                   <span class="column-text"> {{ t("col." + column) }} </span>
 
                   <el-popover
@@ -215,13 +209,15 @@ import {
   getCurrentInstance,
   onMounted,
   computed,
+  onBeforeUnmount
 } from "vue";
 import { useI18n } from "vue-i18n";
 const { t } = useI18n();
 // import CollectionInfo from "@/components/dashboard/CollectionInfo.vue";
-import {  getCustomers } from "@/axios/api";
+import { getCustomers } from "@/axios/api";
 import { Search } from "@element-plus/icons-vue";
 import DocumentDrawer from "@/components/dashboard/DocumentDrawer.vue";
+import { defaultSearchColumns } from "@/utils/fields"
 import { ElMessage } from "element-plus";
 import DropdownMenuList from "./DropdownMenuList.vue";
 import OperationDetail from "./OperationDetail.vue";
@@ -234,33 +230,14 @@ const sortOrders = ref(null);
 //列信息
 const columns = ref([]);
 const searchInput = ref("");
-const selectedItems = ref({});
 const searchFormData = ref([]);
 const selectOptions = ref([]);
 // 表格数据
 const tableData = ref([]);
 const pageTableData = ref([]);
-const showColumns = [
-  "modelName1",
-  "clientCode",
-  "officeCode",
-  "clientName1",
-  "modelType",
-  "status",
-  "handledBy",
-  "warrantyType",
-  "reqDateTime",
-  "salesmanCountry",
-  "server",
-];
-
-// const state = ref(false);
-// const infoState = ref(false);
-let collectionName = ref("");
-// let dbName = ref("");
-// 选中的列
-const activeColumns = ref([]);
-// const columns = ref([]);
+const tableHeight = ref(300);
+const searchHeader = ref(null);
+const mainTable = ref(null);
 
 const drawerVisible = ref(false);
 const jsonData = ref({});
@@ -278,12 +255,36 @@ const page = reactive({
   total: 0,
 });
 
-//选中要筛选的el-select的列
-let selectedColumns = [];
-
 onMounted(async () => {
   loadData();
+
+  // 首次计算
+  calculateTableHeight()
+  
+  // 窗口变化监听
+  window.addEventListener('resize', calculateTableHeight);
+  
+  // 监听搜索栏高度变化
+  const resizeObserver = new ResizeObserver(calculateTableHeight);
+  if (searchHeader.value) {
+    resizeObserver.observe(searchHeader.value);
+  }
+  
+  // 组件卸载时清理
+  onBeforeUnmount(() => {
+    window.removeEventListener('resize', calculateTableHeight);
+    resizeObserver.disconnect()
+  })
+  
 });
+
+// 计算可用高度
+const calculateTableHeight = () => {
+  const windowHeight = window.innerHeight;
+  const topHeight = searchHeader.value?.offsetHeight || 0;
+  const padding = 110; // 上下边距总和
+  tableHeight.value = windowHeight - topHeight - padding;
+}
 
 const handleNextPage = async () => {
   page.currentPage = page.currentPage + 1;
@@ -309,16 +310,17 @@ const handleNextPage = async () => {
           const keys = Object.keys(v);
           columns.value = [...new Set([...columns.value, ...keys])];
         });
-        if (searchFormData.value.length === 0) {
+        if(searchFormData.value.length === 0){
           const optionArr = getSelectOptions();
           selectOptions.value = optionArr;
-          showColumns.map((v) => {
-            selectedItems.value[v] = [];
+          defaultSearchColumns.map((v)=>{
             searchFormData.value.push({
-              label: v,
-              prop: v,
-              options: optionArr[v],
-            });
+              label:v,
+              prop:v,
+              isInclude:true,
+              value:[],
+              searchInput:""
+            })
           });
         }
       })
@@ -364,20 +366,22 @@ const loadData = async (searchParam) => {
         const keys = Object.keys(v);
         columns.value = [...new Set([...columns.value, ...keys])];
       });
-      if (searchFormData.value.length === 0) {
+      if(searchFormData.value.length === 0){
         const optionArr = getSelectOptions();
         selectOptions.value = optionArr;
-        showColumns.map((v) => {
-          selectedItems.value[v] = [];
+        defaultSearchColumns.map((v)=>{
           searchFormData.value.push({
-            label: v,
-            prop: v,
-            options: optionArr[v],
-          });
-        });
-        console.log("showColumns", selectedItems.value, columns.value);
-
-        console.log("options", searchFormData.value);
+            label:v,
+            prop:v,
+            isInclude:true,
+            value:[],
+            searchInput:""
+            // options:optionArr[v],
+          })
+       });
+      // console.log('defaultSearchColumns',columns.value)
+      
+      // console.log('options',searchFormData.value)
       }
     })
     .catch((err) => {
@@ -455,7 +459,6 @@ const showOptinalMessage = () => {
   showIconInfo.value = true;
 };
 
-// const selectOptions = computed(() => {
 const getSelectOptions = () => {
   const options = {};
   columns.value.forEach((column) => {
@@ -489,27 +492,51 @@ watch(columns, (newVal, oldVal) => {
   });
 });
 
-const handleSearch = () => {
-  console.log(searchInput);
+const colOptions = ref([]);
+const handleSearch = (val) => {
+  searchInput.value = val || '';
+  console.log(searchInput.value,colOptions.value);
+
 };
 
-const handleChange = async (column, selectVal) => {
-  console.log("selectVal", selectVal, selectedItems.value);
+// 过滤后的选项（计算属性）
+const filteredOptions = computed(() => {
+  const keyword = searchInput.value.toLowerCase();
+  return colOptions.value.filter(item =>
+    item.value.toLowerCase().includes(keyword)
+  );
+});
+
+// 监听下拉框状态
+const handleSelectToggle = (column,visible) => {
+  if (visible) {
+    searchInput.value = column.searchInput || '';
+    colOptions.value = selectOptions.value[column.prop];
+  }
+}
+
+//下拉数据选中
+const handleChange = async (column) => {
+  console.log('selectVal',column);
   const searchParam = [];
-
-  showColumns.map((column) => {
-    const item = selectedItems.value[column];
-    const val = Object.values(item);
-    val.map((v) => {
+  searchFormData.value.map((columns)=>{
+    let item = columns.value;
+    if(!columns.isInclude){
+      const columnOptions = selectOptions.value[columns.prop].map(v=>{
+        return v.value
+      });
+      item = columnOptions.filter(v => !item.includes(v));
+    }
+    item.map((v)=>{
       const params = {
-        attribute: column,
-        operator: "=",
-        value: v,
-      };
+        attribute:columns.prop,
+        operator:'=',
+        value:v
+      }
       searchParam.push(params);
-    });
-  });
-
+    })
+  })
+  //搜索
   loadData(searchParam);
 };
 
@@ -528,18 +555,6 @@ const handleCurrentPageChange = async () => {
   });
 };
 
-const constrcutObject = (data) => {
-  //循环data数组，将每一个map转换为对象
-  let result = [];
-  data?.forEach((item) => {
-    let obj = {};
-    for (let key in item) {
-      obj[key] = item[key];
-    }
-    result.push(obj);
-  });
-  return result;
-};
 </script>
 
 <style scoped>
@@ -672,7 +687,7 @@ const constrcutObject = (data) => {
   flex: 1;
 }
 
-.form-select :deep(.el-select__wrapper) {
+.form-select :deep(.el-select__wrapper),.form-select:hover :deep(.el-select__wrapper)  {
   height: 38px;
   line-height: 38px;
   border: 1px solid #d3dae6e6;
@@ -681,6 +696,60 @@ const constrcutObject = (data) => {
   border-radius: 6px;
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
+}
+.form-select :deep(.el-select__selected-item.el-tooltip__trigger){
+    position: absolute;
+    right: 0;
+}
+
+.form-select :deep(.el-tag){
+  background-color: transparent;
+  padding: 0;
+  color: #000;
+}
+.form-select .select-tag{
+  display: inline-flex;
+}
+.form-select .tag-status{
+  color: #bd271e;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-right: 5px;
+}
+.form-select .tag-label{
+  max-width: 290px;
+  color: rgb(52, 55, 65);
+  font-size: 1rem;
+  font-weight: 500;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.form-select .tag-count{
+  position: absolute;
+  right: 0;
+  top: 11px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgb(0, 0, 0);
+  background-color: rgb(77, 210, 202);
+  cursor: inherit;
+}
+
+:deep(.el-select-dropdown__footer){
+  background-color: rgb(247, 248, 252);
+}
+.radio-group{
+    /* padding: 2px; */
+    background-color: rgb(249, 251, 253);
+    /* border: 1px solid rgba(211, 218, 230, 0.9); */
+    border-radius: 4px;
 }
 
 .custom-table {

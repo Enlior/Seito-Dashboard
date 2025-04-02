@@ -334,7 +334,7 @@
   "status":"Status",
   "handledBy":"Handle By",
   "warrantyType":"WarrantyType",
-  "reqDateTime":"Expire days",
+  "reqDateTime":"ReqDateTime",
   "salesmanCountry":"Country",
   "server'":"Licence Server",
   
@@ -377,6 +377,7 @@
   "col.salesmanName2":"Salesman Name2",
   "col.salesmanCountry":"Salesman Country",
   "col.server":"Server",
+  "col.remark":"Remark",
   "dashboard.totleRecord":"Total",
   "dashboard.pageSize":"page",
   "dashboard.copyToClipboard":"Copy To Clipboard",
@@ -390,5 +391,4 @@
   "dashboard.copyName":"Copy Name",
   "dashboard.copyColmunValue":"Copy Column",
    "dashboard.moveColmun":"Move Column"
- 
 }
