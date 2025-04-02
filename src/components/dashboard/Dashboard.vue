@@ -79,6 +79,7 @@
               trigger="click"
               :list="columns"
               :icon="dropdownIcon"
+              :maxHeight="380"
             />
           </div>
           <el-table
@@ -943,10 +944,6 @@ const handleCurrentPageChange = async () => {
 <style>
 .el-select-dropdown__header{
   padding: 10px 10px 5px 10px !important;
-}
-.header-btn-dropdown{
-  max-height: 380px;
-  overflow-y: scroll;
 }
 
 .option-btn .btn-icon{

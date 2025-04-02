@@ -1,5 +1,5 @@
 <template>
-  <el-dropdown :placement="placement" :popper-class="popperClass" :hide-on-click="hideOnClick" :trigger="trigger" teleported>
+  <el-dropdown :placement="placement" :popper-class="popperClass" :hide-on-click="hideOnClick" :trigger="trigger" :max-height="maxHeight" teleported>
     <div class="dropdown-icon"><img class="dropdown-icon-img" :src="icon">{{ $t('dashboard.moveColmun') }}</div>
     <template #dropdown>
       <el-dropdown-menu>
@@ -47,6 +47,10 @@ const props = defineProps({
   list:{
     type:Array,
     default:()=>[]
+  },
+  maxHeight:{
+    type: Number,
+    default: 380
   }
 });
 
