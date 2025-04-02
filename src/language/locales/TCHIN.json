@@ -334,5 +334,18 @@
   "col.salesmanName2":"Salesman Name2",
   "col.salesmanCountry":"Salesman Country",
   "col.server":"Server",
-  "col.remark":"Remark"
+  "col.remark":"Remark",
+  "dashboard.totleRecord":"共{total}條記錄",
+  "dashboard.pageSize":"頁",
+  "dashboard.copyToClipboard":"複製到剪貼板",
+  "dashboard.copySuccess":"複製成功",
+  "dashboard.copyFailed":"複製失敗",
+  "dashboard.document":"文檔",
+  "dashboard.asc": "升序",
+  "dashboard.desc": "降序",
+  "dashboard.moveLeft": "左移",
+  "dashboard.moveRight": "右移",
+  "dashboard.copyName":"複製列名",
+  "dashboard.copyColmunValue":"複製列值",
+   "dashboard.moveColmun":"移动欄位"
 }
