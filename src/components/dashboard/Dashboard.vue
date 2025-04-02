@@ -141,30 +141,36 @@
             </el-table-column>
 
             <el-table-column
-              v-for="column in columns"
-              :key="column"
+              v-for="(column,index) in columns"
+              :key="`col-${column}-${index}`"
               :prop="column"
               :label="column"
               width="120"
             >
             <template #header>
               <div class="header-container" >
-                <!-- @mouseenter="showMoreIcon(column,index-1)" -->
                   <span class="column-text"> {{ t("col." + column) }} </span>
 
                   <el-popover
+                    :ref="`col-${column}-${index}`"
+                    :visible="activePopover === column"
                     trigger="click"
                     :width="150"
                     @hide="handlePopoverHide"
+                    placement="bottom-start"
+                    :teleported="true"
+                    :hide-after="500"
+                    v-if="dialogVisible"
+                    @before-leave="handlePopoverBeforeLeave"
                   >
                     <template #reference>
-                      <div class="more-btn" @click="showOptinalMessage">
+                      <div class="more-btn" @click="handlePopoverShow(column)" :data-popover-anchor="column">
                         <el-icon>
                           <More />
                         </el-icon>
                       </div>
                     </template>
-                    <div v-show="showIconInfo">
+                    <div  @mouseleave="handlePopoverHide">
                       <OperationDetail
                         :column="column"
                         @handleOperation="handleOperation"
@@ -176,15 +182,6 @@
             </el-table-column>
           </el-table>
           <div class="pagination-block">
-            <!-- <el-pagination
-              v-model:current-page="page.currentPage"
-              v-model:page-size="page.pageSize"
-              :page-sizes="[10, 20, 30, 50]"
-              v-model:total="page.total"
-              layout="total, sizes, prev, pager, next, jumper"
-              @size-change="handlePagesizeChange"
-              @current-change="handleCurrentPageChange"
-            /> -->
             <el-pagination
               v-model:current-page="page.currentPage"
               v-model:page-size="page.pageSize"
@@ -194,7 +191,6 @@
               @size-change="handlePagesizeChange"
               v-model:total="page.total"
             />
-            <!-- <el-button @click="handleNextPage">下一页</el-button> -->
             <el-icon  @click="handleNextPage"  class="next-page-icon"><ArrowRightBold /></el-icon>
           </div>
         </el-col>
@@ -202,7 +198,7 @@
     </div>
     <DocumentDrawer
       direction="rtl"
-      title="Document"
+      title="JSON"
       :drawerVisible="drawerVisible"
       :data="jsonData"
       @handleClose="handleDrawerClose"
@@ -215,14 +211,12 @@ import {
   reactive,
   ref,
   watch,
-  getCurrentInstance,
   onMounted,
   computed,
-  onBeforeUnmount
+  onBeforeUnmount,
 } from "vue";
 import { useI18n } from "vue-i18n";
 const { t } = useI18n();
-// import CollectionInfo from "@/components/dashboard/CollectionInfo.vue";
 import { getCustomers } from "@/axios/api";
 import { Search } from "@element-plus/icons-vue";
 import DocumentDrawer from "@/components/dashboard/DocumentDrawer.vue";
@@ -236,6 +230,11 @@ const dropdownIcon = ref(require("@/assets/add-remove-columns.png"));
 
 const sortBy = ref(null);
 const sortOrders = ref(null);
+
+const activePopover = ref('')
+
+const dialogVisible=ref(true)
+
 
 //列信息
 const columns = ref([]);
@@ -259,9 +258,7 @@ const drawerState = ref([]);
 const showColumnIcon = ref([]);
 let lastEvaluatedkey = {};
 
-const { proxy } = getCurrentInstance();
-
-const showIconInfo = ref(false);
+const showIconInfo = ref(true);
 
 const page = reactive({
   currentPage: 1,
@@ -366,6 +363,13 @@ const handleResize = () => {
   calculateTableHeight();
 }
 
+const handlePopoverBeforeLeave=()=>{
+  dialogVisible.value = false
+  setTimeout(() => {
+    dialogVisible.value = true
+  }, 100)
+}
+
 // 计算可用高度
 const calculateTableHeight = () => {
   const windowHeight = window.innerHeight;
@@ -432,8 +436,13 @@ const handleNextPage = async () => {
 };
 
 const handlePopoverHide = () => {
-  showIconInfo.value = false;
+        activePopover.value = '';
 };
+
+const handlePopoverShow = (column) => {
+ activePopover.value =  activePopover.value === column ? '':  column;
+}
+
 
 const loadData = async (searchParam) => {
   let params = {
@@ -495,6 +504,7 @@ const handleOperation = async ({ column, operation }) => {
       }
       let leftIndex = columns.value.findIndex((item) => item === column);
       columns.value = swapElements(columns.value, leftIndex);
+      handlePopoverHide()
       break;
     case "moveRight":
       if (column === columns.value[columns.value.length - 1]) {
@@ -505,14 +515,16 @@ const handleOperation = async ({ column, operation }) => {
         columns.value[rightIndex + 1],
         columns.value[rightIndex],
       ];
+      handlePopoverHide()
       break;
     case "copyName":
       try {
         await navigator.clipboard.writeText(column);
-        ElMessage.success("复制成功");
+        ElMessage.success(t("dashboard.copySuccess"));
       } catch (err) {
-        ElMessage.error("复制失败");
+        ElMessage.error(t("dashboard.copyFailed"));
       }
+  
       break;
     case "copyColumn":
       let copArr = [];
@@ -521,24 +533,27 @@ const handleOperation = async ({ column, operation }) => {
       });
       try {
         await navigator.clipboard.writeText(JSON.stringify(copArr));
-        ElMessage.success("复制成功");
+        ElMessage.success(t("dashboard.copySuccess"));
       } catch (err) {
-        ElMessage.error("复制失败");
+        ElMessage.error(t("dashboard.copyFailed"));
       }
+     
       break;
     case "sortAsc":
       sortBy.value = column;
       sortOrders.value = "ascending";
-      tableData.value.sort((a, b) => {
+      pageTableData.value.sort((a, b) => {
         return a[column] > b[column] ? 1 : -1;
       });
+   
       break;
     case "sortDesc":
       sortBy.value = column;
       sortOrders.value = "descending";
-      tableData.value.sort((a, b) => {
+      pageTableData.value.sort((a, b) => {
         return a[column] < b[column] ? 1 : -1;
       });
+      
       break;
     default:
       break;
@@ -900,7 +915,8 @@ const handleCurrentPageChange = async () => {
   display: flex;
   justify-content: left;
   align-items: center;
-  margin: 5px 10px;
+  /* margin: 5px 10px; */
+  padding:5px 0 5px 5px
 }
 
 .drawer-content {
@@ -954,6 +970,7 @@ const handleCurrentPageChange = async () => {
 }
 
 .btn-sort.disable{
+  cursor: no-drop;
   opacity: 0.3;
 }
 </style>

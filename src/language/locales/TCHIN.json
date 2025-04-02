@@ -295,7 +295,6 @@
   "reqDateTime":"ReqDateTime",
   "salesmanCountry":"Country",
   "server'":"Licence Server",
-
   "col.dataType":"Data Type",
   "col.dataKey":"Data Key",
   "col.reqDateTime":"ReqDateTime",
@@ -336,6 +335,8 @@
   "col.salesmanCountry":"Salesman Country",
   "col.server":"Server",
   "col.remark":"Remark",
+  "col.pk":"PK",
+  "col.sk":"SK",
 
    "option":"选项",
    "Include":"包含",
@@ -346,5 +347,19 @@
    "btn.sort":"排序",
    "btn.sortAsc":"升序",
    "btn.sortDesc":"降序",
-   "noSelect":"没有选择"
+   "noSelect":"没有选择",
+
+  "dashboard.totleRecord":"共{total}條記錄",
+  "dashboard.pageSize":"頁",
+  "dashboard.copyToClipboard":"複製到剪貼板",
+  "dashboard.copySuccess":"複製成功",
+  "dashboard.copyFailed":"複製失敗",
+  "dashboard.document":"文檔",
+  "dashboard.asc": "升序",
+  "dashboard.desc": "降序",
+  "dashboard.moveLeft": "左移",
+  "dashboard.moveRight": "右移",
+  "dashboard.copyName":"複製列名",
+  "dashboard.copyColmunValue":"複製列值",
+   "dashboard.moveColmun":"移动欄位"
 }

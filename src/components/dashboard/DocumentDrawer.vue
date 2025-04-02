@@ -33,7 +33,7 @@
       </svg> -->
       <copyIcon></copyIcon>
       <span @click="copyToClipboard" style="margin-left: 5px; cursor: pointer"
-        >Copy to clipboard</span
+        >{{$t("dashboard.copyToClipboard")}}</span
       >
     </div>
       <div class="json-content">
@@ -48,6 +48,9 @@ import { ElMessage } from "element-plus";
 import VueJsonPretty from "vue-json-pretty";
 import "vue-json-pretty/lib/styles.css";
 import {CopyIcon} from "../../utils/icons"
+import { useI18n } from "vue-i18n";
+const { t } = useI18n();
+
 const props = defineProps({
   drawerVisible: {
     type: Boolean,

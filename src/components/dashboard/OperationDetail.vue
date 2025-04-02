@@ -5,7 +5,7 @@
         <el-icon><Top /></el-icon>
       </div>
       <span class="message-text" @click="handleOperation(props.column, 'sortAsc')"
-        >Sort A-Z</span
+        >{{$t("dashboard.asc")}}</span
       >
     </div>
     <div class="optional-row-message">
@@ -13,7 +13,7 @@
         <el-icon><Bottom /></el-icon>
       </div>
       <span class="message-text" @click="handleOperation(props.column, 'sortDesc')"
-        >Sort Z-A</span
+        >{{$t("dashboard.desc")}}</span
       >
     </div>
     <div class="optional-row-message">
@@ -21,7 +21,7 @@
         <el-icon><Back /></el-icon>
       </div>
       <span class="message-text" @click="handleOperation(props.column, 'moveLeft')"
-        >Move Left</span
+        >{{$t("dashboard.moveLeft")}}</span
       >
     </div>
     <div class="optional-row-message">
@@ -29,19 +29,19 @@
         <el-icon><Right /></el-icon>
       </div>
       <span class="message-text" @click="handleOperation(props.column, 'moveRight')"
-        >Move Right</span
+        >{{$t("dashboard.moveRight")}}</span
       >
     </div>
     <div class="optional-row-message">
       <div class="icon-box"><CopyIcon /></div>
       <span class="message-text" @click="handleOperation(props.column, 'copyName')"
-        >copy name</span
+        >{{$t("dashboard.copyName")}}</span
       >
     </div>
     <div class="optional-row-message">
       <div class="icon-box"><CopyIcon /></div>
       <span class="message-text" @click="handleOperation(props.column, 'copyColumn')"
-        >copy column</span
+        >{{$t("dashboard.copyColmunValue")}}</span
       >
     </div>
   </div>
@@ -50,6 +50,8 @@
 import {  defineProps, defineEmits } from "vue";
 import { CopyIcon } from "../../utils/icons";
 import { column } from "element-plus/es/components/table-v2/src/common";
+import { useI18n } from "vue-i18n";
+const { t } = useI18n();
 
 const props = defineProps({
   column: {
@@ -61,7 +63,6 @@ const props = defineProps({
 const emit = defineEmits(["handleOperation"]);
 
 const handleOperation = (column, operation) => {
-  console.log("handleOperation 发送了", column, operation);
   emit("handleOperation", { column, operation });
 };
 </script>
