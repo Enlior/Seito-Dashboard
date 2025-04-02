@@ -402,21 +402,7 @@ const handleNextPage = async () => {
           const keys = Object.keys(v);
           columns.value = [...new Set([...columns.value, ...keys])];
         });
-        if(searchFormData.value.length === 0){
-          const optionArr = getSelectOptions();
-          selectOptions.value = optionArr;
-          defaultSearchColumns.map((v)=>{
-            searchFormData.value.push({
-              label:v,
-              prop:v,
-              isInclude:true,
-              value:[],
-              searchInput:"",
-              sortType:'asc',
-              filterType:'Any'
-            })
-          });
-        }
+        updateSearchFormData();
       })
       .catch((err) => {
         loading.value = false;
@@ -456,9 +442,18 @@ const loadData = async (searchParam) => {
         const keys = Object.keys(v);
         columns.value = [...new Set([...columns.value, ...keys])];
       });
-      if(searchFormData.value.length === 0){
-        const optionArr = getSelectOptions();
-        selectOptions.value = optionArr;
+      updateSearchFormData();
+    })
+    .catch((err) => {
+      loading.value = false;
+      console.error(err?.msg);
+    });
+};
+
+const updateSearchFormData = () =>{
+  const optionArr = getSelectOptions();
+  selectOptions.value = optionArr;
+  if(searchFormData.value.length === 0){
         defaultSearchColumns.map((v)=>{
           searchFormData.value.push({
             label:v,
@@ -471,16 +466,8 @@ const loadData = async (searchParam) => {
             // options:optionArr[v],
           })
        });
-      // console.log('defaultSearchColumns',columns.value)
-      
-      // console.log('options',searchFormData.value)
-      }
-    })
-    .catch((err) => {
-      loading.value = false;
-      console.error(err?.msg);
-    });
-};
+  }  
+}
 
 const handleOperation = async ({ column, operation }) => {
   switch (operation) {
@@ -901,8 +888,7 @@ const handleCurrentPageChange = async () => {
   display: flex;
   justify-content: left;
   align-items: center;
-  /* margin: 5px 10px; */
-  padding:5px 0 5px 5px
+  padding:5px 10px;
 }
 
 .drawer-content {
