@@ -376,5 +376,19 @@
   "col.salesmanName1":"Salesman Name1",
   "col.salesmanName2":"Salesman Name2",
   "col.salesmanCountry":"Salesman Country",
-  "col.server":"Server"
+  "col.server":"Server",
+  "dashboard.totleRecord":"Total",
+  "dashboard.pageSize":"page",
+  "dashboard.copyToClipboard":"Copy To Clipboard",
+  "dashboard.copySuccess":"Copy successful",
+  "dashboard.copyFailed":"Copy failed",
+  "dashboard.document":"Document",
+  "dashboard.asc": "Sort A-Z",
+  "dashboard.desc": "Sort Z-A",
+  "dashboard.moveLeft": "Move Left",
+  "dashboard.moveRight": "Move Right",
+  "dashboard.copyName":"Copy Name",
+  "dashboard.copyColmunValue":"Copy Column",
+   "dashboard.moveColmun":"Move Column"
+ 
 }

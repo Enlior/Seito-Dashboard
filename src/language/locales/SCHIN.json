@@ -327,7 +327,6 @@
   "cp.resetQueueConfirm": "是否确认重置队列？",
   "cp.resetQueueSuccess": "成功重置队列",
   "cp.resetQueueFail": "重置队列失败",
-
   "modelName1":"Model Name",
   "clientCode":"Client Code",
   "officeCode":"Office Code",
@@ -339,11 +338,8 @@
   "reqDateTime":"Expire days",
   "salesmanCountry":"Country",
   "server":"Licence Server",
-
-
   "deliveredQty":"DeliveredQty",
   "verify":"Verify",
- 
   "col.dataType":"Data Type",
   "col.dataKey":"Data Key",
   "col.reqDateTime":"ReqDateTime",
@@ -382,5 +378,18 @@
   "col.salesmanName1":"Salesman Name1",
   "col.salesmanName2":"Salesman Name2",
   "col.salesmanCountry":"Salesman Country",
-  "col.server":"Server"
+  "col.server":"Server",
+  "dashboard.totleRecord":"共{total}条记录",
+  "dashboard.pageSize":"页",
+  "dashboard.copyToClipboard":"复制到剪贴板",
+  "dashboard.copySuccess":"复制成功",
+  "dashboard.copyFailed":"复制失败",
+  "dashboard.document":"文档",
+  "dashboard.asc": "升序",
+  "dashboard.desc": "降序",
+  "dashboard.moveLeft": "左移",
+  "dashboard.moveRight": "有移",
+  "dashboard.copyName":"复制列名",
+  "dashboard.copyColmunValue":"复制列值",
+   "dashboard.moveColmun":"移动栏位"
 }

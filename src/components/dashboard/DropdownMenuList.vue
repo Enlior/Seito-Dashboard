@@ -1,6 +1,6 @@
 <template>
   <el-dropdown :placement="placement" :popper-class="popperClass" :hide-on-click="hideOnClick" :trigger="trigger" teleported>
-    <div class="dropdown-icon"><img class="dropdown-icon-img" :src="icon">{{ $t('move.column') }}</div>
+    <div class="dropdown-icon"><img class="dropdown-icon-img" :src="icon">{{ $t('dashboard.moveColmun') }}</div>
     <template #dropdown>
       <el-dropdown-menu>
         <el-checkbox-group @change="changeColumnShow" v-model="checkList">
@@ -18,7 +18,10 @@
 
 <script setup>
 import { ref, defineProps, watch,computed,onMounted } from 'vue';
-import { VueDraggable } from 'vue-draggable-plus'
+import { VueDraggable } from 'vue-draggable-plus';
+import { useI18n } from "vue-i18n";
+const { t } = useI18n();
+
 
 const props = defineProps({
   placement:{

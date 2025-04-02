@@ -199,7 +199,7 @@
     </div>
     <DocumentDrawer
       direction="rtl"
-      title="Document"
+      title="JSON"
       :drawerVisible="drawerVisible"
       :data="jsonData"
       @handleClose="handleDrawerClose"
@@ -407,9 +407,9 @@ const handleOperation = async ({ column, operation }) => {
     case "copyName":
       try {
         await navigator.clipboard.writeText(column);
-        ElMessage.success("复制成功");
+        ElMessage.success(t("dashboard.copySuccess"));
       } catch (err) {
-        ElMessage.error("复制失败");
+        ElMessage.error(t("dashboard.copyFailed"));
       }
       break;
     case "copyColumn":
@@ -419,9 +419,9 @@ const handleOperation = async ({ column, operation }) => {
       });
       try {
         await navigator.clipboard.writeText(JSON.stringify(copArr));
-        ElMessage.success("复制成功");
+        ElMessage.success(t("dashboard.copySuccess"));
       } catch (err) {
-        ElMessage.error("复制失败");
+        ElMessage.error(t("dashboard.copyFailed"));
       }
       break;
     case "sortAsc":
