@@ -11,6 +11,8 @@ import i18n from "./language"
 
 import tips from '@/utils/Tips.js'
 
+
+
 const app = createApp(App);
 //version
 // app.config.globalProperties.$version = 'v820.196b.2411091415';
@@ -20,6 +22,11 @@ app.config.globalProperties.$tips =  tips;
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
     app.component(key, component)
 }
+
+
+import Tooltips from "./components/tooltips/Tooltips.vue";
+//Tooltips
+app.component('Tooltips', Tooltips);
 
 // import SeitoFrontendComponent from 'seito-frontend-component-library';
 // import SeitoFrontendComponent from '../public/lib/frontend-component/dist/seito-frontend-component-library.umd.js';

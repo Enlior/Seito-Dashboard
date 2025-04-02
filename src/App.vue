@@ -109,6 +109,6 @@ body {
   height: 100%;
   margin: 0;
   padding: 0;
-  font-family: Barlow Condensed;
+  font-family: Inter, BlinkMacSystemFont, Helvetica, Arial, sans-serif,Barlow Condensed;
 }
 </style>

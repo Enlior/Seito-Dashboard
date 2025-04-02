@@ -377,5 +377,16 @@
   "col.salesmanName2":"Salesman Name2",
   "col.salesmanCountry":"Salesman Country",
   "col.server":"Server",
-  "col.remark":"Remark"
+  "col.remark":"Remark",
+
+  "option":"option",
+  "Include":"Include",
+  "Exclude":"Exclude",
+  "btn.showTips":"Show only selected options",
+  "btn.hideTips":"Show All options",
+  "btn.noDataSort":"Sorting is ignored when 'Show onlyselected' is true",
+  "btn.sort":"Sort",
+  "btn.sortAsc":"Ascending",
+  "btn.sortDesc":"Descending",
+  "noSelect":"You have no selections"
 }

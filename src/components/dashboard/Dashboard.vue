@@ -4,7 +4,7 @@
       <el-row class="search-form" :gutter="10">
         <el-col
           class="form-item"
-          :span="6"
+          :span="columnWidth"
           v-for="column in searchFormData"
           :key="column"
         >
@@ -18,11 +18,14 @@
             size="large"
             :offset="0"
             :show-arrow="false"
-            :placeholder="column.label"
+            :placeholder="column.filterType"
             :fit-input-width="true"
             @change="handleChange(column)"
             @visible-change="handleSelectToggle(column, $event)"
           >
+            <template #empty>
+              <div>{{ $t("noSelect") }}</div>
+            </template>
             <!-- :multiple-limit="1" -->
             <!-- @focus="handleFocus(columns[index])" -->
             <!-- @clear="handleClear(index)" -->
@@ -35,6 +38,12 @@
                 clearable
                 @input="handleSearch(column.searchInput)"
               />
+              <div class="select-header-options">
+                <span class="option-count">{{filteredOptions.length}} {{t('option')}}</span>
+                <span class="option-btn">
+                  <Buttons :buttons="buttons"></Buttons>
+                </span>
+              </div>
             </template>
             <el-option
               v-for="item in filteredOptions"
@@ -52,8 +61,8 @@
             </template>
             <template #footer>
               <el-radio-group v-model="column.isInclude" @change="handleChange(column)" size="default" class="radio-group" border-color="none" text-color="#ffffff" fill="#69707d">
-                <el-radio-button label="Include" :value="true" />
-                <el-radio-button label="Exclude" :value="false" />
+                <el-radio-button :label="t('Include')" :value="true" />
+                <el-radio-button :label="t('Exclude')" :value="false" />
               </el-radio-group>
             </template>
           </el-select>
@@ -74,6 +83,7 @@
           </div>
           <el-table
             ref="mainTable"
+            v-loading="loading"
             :data="pageTableData"
             :height="tableHeight"
             stripe
@@ -84,7 +94,6 @@
             cell-class-name="table-cell"
             class="custom-table"
             show-overflow-tooltip
-            :min-width="120"
           >
             <template #empty>
               <div>{{ $t("table.notdata") }}</div>
@@ -179,7 +188,7 @@
             <el-pagination
               v-model:current-page="page.currentPage"
               v-model:page-size="page.pageSize"
-              :page-sizes="[10, 25, 50]"
+              :page-sizes="[10, 25, 50,100]"
               layout="total, sizes, prev, pager"
               @current-change="handleCurrentPageChange"
               @size-change="handlePagesizeChange"
@@ -221,7 +230,8 @@ import { defaultSearchColumns } from "@/utils/fields"
 import { ElMessage } from "element-plus";
 import DropdownMenuList from "./DropdownMenuList.vue";
 import OperationDetail from "./OperationDetail.vue";
-
+import Buttons from "@/components/button/Buttons.vue";
+import { ShowIcon,HideIcon,AscSortIcon, DescSortIcon} from "../../utils/icons";
 const dropdownIcon = ref(require("@/assets/add-remove-columns.png"));
 
 const sortBy = ref(null);
@@ -229,10 +239,14 @@ const sortOrders = ref(null);
 
 //列信息
 const columns = ref([]);
-const searchInput = ref("");
-const searchFormData = ref([]);
-const selectOptions = ref([]);
+const searchInput = ref(""); //当前搜索下拉框数据条件
+const searchFormData = ref([]); //搜索框表单数据
+const selectOptions = ref([]); //下拉框数据
+const currentSelect = ref({}); //当前筛选字段
+const showSelcetOptions = ref(true); //选定选中选项
+const colOptions = ref([]); //当前下拉框的数据
 // 表格数据
+const loading = ref(false);
 const tableData = ref([]);
 const pageTableData = ref([]);
 const tableHeight = ref(300);
@@ -255,28 +269,102 @@ const page = reactive({
   total: 0,
 });
 
+const buttons = reactive([
+  {
+    type: "",
+    btnText: "",
+    icon: true,
+    get svg(){
+      return showSelcetOptions.value ? ShowIcon:HideIcon
+    },
+    link:true,
+    className: "btn-icon",
+    get iconClass(){
+      return showSelcetOptions.value ? 'btn-show':'btn-hide'
+    },
+    tooltipsPlacement:'top',
+    get tooltipsText() {
+      return showSelcetOptions.value ? 'btn.showTips':'btn.hideTips'
+    },
+    eventFn: function () {
+      console.log("show",currentSelect.value);
+      const allOptions = selectOptions.value[currentSelect.value.prop];
+      const selectOption = currentSelect.value.value;
+      if(showSelcetOptions.value){
+        const arr = allOptions.filter((v)=>selectOption.includes(v.value));
+        colOptions.value = arr;
+        showSelcetOptions.value = false;
+      }else{
+        showSelcetOptions.value = true;
+        colOptions.value = allOptions;
+      }
+    },
+  },
+  {
+    type: "",
+    btnText: "",
+    icon: true,
+    get svg(){
+      return currentSelect.value.sortType === 'asc' ? AscSortIcon:DescSortIcon
+    },
+    link:true,
+    className: "btn-icon",
+    get iconClass(){
+      return showSelcetOptions.value ? 'btn-sort':'btn-sort disable'
+    },
+    tooltipsPlacement:'top',
+    get tooltipsText() {
+      return (showSelcetOptions.value && colOptions.value.length > 0) ?(currentSelect.value.sortType === 'asc' ?'btn.sortAsc':'btn.sortDesc'):'btn.noDataSort'
+    },
+    get disabled(){
+      return showSelcetOptions.value ? false : true
+    },
+    eventFn: function () {
+      console.log("sort",currentSelect.value.sortType);
+      const sort = currentSelect.value.sortType === 'asc' ? 'desc':'asc';
+      currentSelect.value.sortType = sort;
+    },
+  },
+]);
+
 onMounted(async () => {
   loadData();
 
   // 首次计算
-  calculateTableHeight()
+  handleResize();
+  
   
   // 窗口变化监听
-  window.addEventListener('resize', calculateTableHeight);
+  window.addEventListener('resize', handleResize);
   
   // 监听搜索栏高度变化
-  const resizeObserver = new ResizeObserver(calculateTableHeight);
+  const resizeObserver = new ResizeObserver(handleResize);
   if (searchHeader.value) {
     resizeObserver.observe(searchHeader.value);
   }
   
   // 组件卸载时清理
   onBeforeUnmount(() => {
-    window.removeEventListener('resize', calculateTableHeight);
+    window.removeEventListener('resize', handleResize);
     resizeObserver.disconnect()
   })
   
 });
+
+const columnWidth = ref(6);
+const handleResize = () => {
+  const screenWidth = window.innerWidth;
+  if (screenWidth < 840) {
+    columnWidth.value = 24; // 小屏幕时占满整行
+  } else if (screenWidth >= 840 && screenWidth < 1245) {
+    columnWidth.value = 12; // 中等屏幕时占一半
+  } else if (screenWidth >= 992 && screenWidth < 1655) {
+    columnWidth.value = 8; // 中等屏幕时占一半
+  } else {
+    columnWidth.value = 6; // 大屏幕时占三分之一
+  }
+  calculateTableHeight();
+}
 
 // 计算可用高度
 const calculateTableHeight = () => {
@@ -296,8 +384,10 @@ const handleNextPage = async () => {
       },
       lastEvaluatedKey: lastEvaluatedkey,
     };
+    loading.value = true;
     await getCustomers(params)
       .then((result) => {
+        loading.value = false;
         const items = result.data.items;
         lastEvaluatedkey = result.data.lastEvaluatedKey;
         tableData.value = [...tableData.value,...items];
@@ -319,12 +409,15 @@ const handleNextPage = async () => {
               prop:v,
               isInclude:true,
               value:[],
-              searchInput:""
+              searchInput:"",
+              sortType:'asc',
+              filterType:'Any'
             })
           });
         }
       })
       .catch((err) => {
+        loading.value = false;
         console.error(err?.msg);
       });
   } else {
@@ -349,8 +442,10 @@ const loadData = async (searchParam) => {
       query: searchParam || [],
     },
   };
+  loading.value = true;
   await getCustomers(params)
     .then((result) => {
+      loading.value = false;
       const items = result.data.items;
       lastEvaluatedkey = result.data.lastEvaluatedKey;
       tableData.value = items;
@@ -375,7 +470,9 @@ const loadData = async (searchParam) => {
             prop:v,
             isInclude:true,
             value:[],
-            searchInput:""
+            searchInput:"",
+            sortType:'asc',
+            filterType:'Any'
             // options:optionArr[v],
           })
        });
@@ -385,6 +482,7 @@ const loadData = async (searchParam) => {
       }
     })
     .catch((err) => {
+      loading.value = false;
       console.error(err?.msg);
     });
 };
@@ -459,6 +557,7 @@ const showOptinalMessage = () => {
   showIconInfo.value = true;
 };
 
+//获取下拉框数据
 const getSelectOptions = () => {
   const options = {};
   columns.value.forEach((column) => {
@@ -492,7 +591,7 @@ watch(columns, (newVal, oldVal) => {
   });
 });
 
-const colOptions = ref([]);
+
 const handleSearch = (val) => {
   searchInput.value = val || '';
   console.log(searchInput.value,colOptions.value);
@@ -502,16 +601,33 @@ const handleSearch = (val) => {
 // 过滤后的选项（计算属性）
 const filteredOptions = computed(() => {
   const keyword = searchInput.value.toLowerCase();
-  return colOptions.value.filter(item =>
-    item.value.toLowerCase().includes(keyword)
+  const data = colOptions.value.filter(item =>
+    item.value?.toLowerCase().includes(keyword)
   );
+  // sort value
+  return sortArray(data, 'value', currentSelect.value.sortType);
 });
+
+
+const sortArray = (data, field, order = 'asc') => {
+  return data.sort((a, b) => {
+    if (a[field] < b[field]) {
+      return order === 'asc' ? -1 : 1;
+    }
+    if (a[field] > b[field]) {
+      return order === 'asc' ? 1 : -1;
+    }
+    return 0;
+  });
+}
 
 // 监听下拉框状态
 const handleSelectToggle = (column,visible) => {
   if (visible) {
     searchInput.value = column.searchInput || '';
+    currentSelect.value = column;
     colOptions.value = selectOptions.value[column.prop];
+    showSelcetOptions.value = true;
   }
 }
 
@@ -591,7 +707,6 @@ const handleCurrentPageChange = async () => {
 .header-container:hover .more-btn {
   display: block;
 }
-
 .optional-row-message {
   display: flex;
   margin: 3px 0;
@@ -651,6 +766,8 @@ const handleCurrentPageChange = async () => {
 }
 
 .search-form {
+  display: flex;
+  flex-wrap: wrap;
   width: 100%;
 }
 
@@ -742,6 +859,22 @@ const handleCurrentPageChange = async () => {
   cursor: inherit;
 }
 
+.select-header-options{
+  display: inline-flex;
+  width: 100%;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding-top: 5px;
+}
+.select-header-options .option-count{
+  
+}
+.select-header-options .option-btn{
+  flex: 1;
+  text-align: right;
+}
+
 :deep(.el-select-dropdown__footer){
   background-color: rgb(247, 248, 252);
 }
@@ -754,6 +887,8 @@ const handleCurrentPageChange = async () => {
 
 .custom-table {
   border-radius: 6px;
+  min-width: 120px;
+  min-height: 300px;
 }
 
 .table-cell {
@@ -765,7 +900,7 @@ const handleCurrentPageChange = async () => {
   display: flex;
   justify-content: left;
   align-items: center;
-  margin-top: 10px;
+  margin: 5px 10px;
 }
 
 .drawer-content {
@@ -787,5 +922,38 @@ const handleCurrentPageChange = async () => {
   display: flex;
   justify-content: center;
   align-items: center;
+}
+</style>
+<style>
+.el-select-dropdown__header{
+  padding: 10px 10px 5px 10px !important;
+}
+.header-btn-dropdown{
+  max-height: 380px;
+  overflow-y: scroll;
+}
+
+.option-btn .btn-icon{
+  width: 20px;
+  height: 20px;
+}
+
+.btn-show{
+ padding: 3px;
+}
+
+.btn-hide{
+  padding: 3px;
+  border-radius: 4px;
+  color: rgb(0, 97, 166);
+  background-color: rgb(204, 228, 245);
+}
+
+.btn-sort{
+  cursor: pointer;
+}
+
+.btn-sort.disable{
+  opacity: 0.3;
 }
 </style>

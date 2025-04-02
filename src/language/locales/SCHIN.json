@@ -333,7 +333,7 @@
   "officeCode":"Office Code",
   "clientName1":"Client Name",
   "modelType":"ModelTypeName",
-  "status":"Status",
+  "status":"状态",
   "handledBy":"Handle By",
   "warrantyType":"WarrantyType",
   "reqDateTime":"ReqDateTime",
@@ -383,5 +383,16 @@
   "col.salesmanName2":"Salesman Name2",
   "col.salesmanCountry":"Salesman Country",
   "col.server":"Server",
-  "col.remark":"Remark"
+  "col.remark":"Remark",
+
+  "option":"選項",
+  "Include":"包含",
+  "Exclude":"排除",
+  "btn.showTips":"僅顯示選定選項",
+  "btn.hideTips":"顯示所有選項",
+  "btn.noDataSort":"當“僅顯示選定内容”為真時，排序將被忽略",
+  "btn.sort":"排序",
+  "btn.sortAsc":"升序",
+  "btn.sortDesc":"降序",
+  "noSelect":"沒有選擇"
 }
