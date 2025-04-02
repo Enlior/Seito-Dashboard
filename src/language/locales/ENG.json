@@ -337,7 +337,6 @@
   "reqDateTime":"ReqDateTime",
   "salesmanCountry":"Country",
   "server'":"Licence Server",
-  
   "col.dataType":"Data Type",
   "col.dataKey":"Data Key",
   "col.reqDateTime":"ReqDateTime",
@@ -378,6 +377,8 @@
   "col.salesmanCountry":"Salesman Country",
   "col.server":"Server",
   "col.remark":"Remark",
+  "col.PK":"PK",
+  "col.SK":"SK",
   "dashboard.totleRecord":"Total",
   "dashboard.pageSize":"page",
   "dashboard.copyToClipboard":"Copy To Clipboard",

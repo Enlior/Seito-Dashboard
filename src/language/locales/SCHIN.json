@@ -380,6 +380,8 @@
   "col.salesmanCountry":"Salesman Country",
   "col.server":"Server",
   "col.remark":"Remark",
+  "col.pk":"PK",
+  "col.sk":"SK",
   "dashboard.totleRecord":"共{total}条记录",
   "dashboard.pageSize":"页",
   "dashboard.copyToClipboard":"复制到剪贴板",

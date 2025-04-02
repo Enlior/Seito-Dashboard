@@ -132,8 +132,8 @@
             </el-table-column>
 
             <el-table-column
-              v-for="column in columns"
-              :key="column"
+              v-for="(column,index) in columns"
+              :key="`col-${column}-${index}`"
               :prop="column"
               :label="column"
               width="120"
@@ -144,18 +144,34 @@
                   <span class="column-text"> {{ t("col." + column) }} </span>
 
                   <el-popover
+                    :ref="`col-${column}-${index}`"
+                    :visible="activePopover === column"
                     trigger="click"
                     :width="150"
                     @hide="handlePopoverHide"
+                    placement="bottom-start"
+                    :teleported="true"
+                    :hide-after="500"
                   >
+                  <!-- <el-popover
+                    :ref="(popover)=>{setPopoverRef(column,popover)}"
+                    :visible="activePopover === column"
+                    :virtual-ref="virtualRefMap[column]"
+                    virtaul-triggering
+                    trigger="click"
+                    :width="150"
+                    @hide="handlePopoverHide"
+                    placement="bottom-start"
+                    :teleported="false"
+                  > -->
                     <template #reference>
-                      <div class="more-btn" @click="showOptinalMessage">
+                      <div class="more-btn" @click="handlePopoverShow(column)" :data-popover-anchor="column">
                         <el-icon>
                           <More />
                         </el-icon>
                       </div>
                     </template>
-                    <div v-show="showIconInfo">
+                    <div  @mouseleave="handlePopoverHide">
                       <OperationDetail
                         :column="column"
                         @handleOperation="handleOperation"
@@ -209,7 +225,8 @@ import {
   getCurrentInstance,
   onMounted,
   computed,
-  onBeforeUnmount
+  onBeforeUnmount,
+  nextTick
 } from "vue";
 import { useI18n } from "vue-i18n";
 const { t } = useI18n();
@@ -226,6 +243,10 @@ const dropdownIcon = ref(require("@/assets/add-remove-columns.png"));
 
 const sortBy = ref(null);
 const sortOrders = ref(null);
+
+const activePopover = ref('')
+const popoverRefs =ref({})
+const virtualRefMap = ref({})
 
 //列信息
 const columns = ref([]);
@@ -247,7 +268,7 @@ let lastEvaluatedkey = {};
 
 const { proxy } = getCurrentInstance();
 
-const showIconInfo = ref(false);
+const showIconInfo = ref(true);
 
 const page = reactive({
   currentPage: 1,
@@ -339,8 +360,29 @@ const handleNextPage = async () => {
 };
 
 const handlePopoverHide = () => {
-  showIconInfo.value = false;
+        activePopover.value = '';
 };
+
+const handlePopoverShow = (column) => {
+ activePopover.value =  activePopover.value === column ? '':  column;
+}
+
+
+
+const setPopoverRef = (column, popover) => {
+  if(popover){
+    popoverRefs.value[column] = popover;
+    //创建虚拟触发器
+    virtualRefMap.value[column] ={
+      getBoundingClientRect:()=>{
+        const trigger = document.querySelector(`[data-popover-trigger="${column}"]`);
+        return trigger?.getBoundingClientRect() || new DOMRect();
+      }
+    }
+
+  }
+}
+
 
 const loadData = async (searchParam) => {
   let params = {
@@ -397,6 +439,7 @@ const handleOperation = async ({ column, operation }) => {
       }
       let leftIndex = columns.value.findIndex((item) => item === column);
       columns.value = swapElements(columns.value, leftIndex);
+      handlePopoverHide()
       break;
     case "moveRight":
       if (column === columns.value[columns.value.length - 1]) {
@@ -407,6 +450,7 @@ const handleOperation = async ({ column, operation }) => {
         columns.value[rightIndex + 1],
         columns.value[rightIndex],
       ];
+      handlePopoverHide()
       break;
     case "copyName":
       try {
@@ -415,6 +459,7 @@ const handleOperation = async ({ column, operation }) => {
       } catch (err) {
         ElMessage.error(t("dashboard.copyFailed"));
       }
+  
       break;
     case "copyColumn":
       let copArr = [];
@@ -427,6 +472,7 @@ const handleOperation = async ({ column, operation }) => {
       } catch (err) {
         ElMessage.error(t("dashboard.copyFailed"));
       }
+     
       break;
     case "sortAsc":
       sortBy.value = column;
@@ -434,6 +480,7 @@ const handleOperation = async ({ column, operation }) => {
       pageTableData.value.sort((a, b) => {
         return a[column] > b[column] ? 1 : -1;
       });
+   
       break;
     case "sortDesc":
       sortBy.value = column;
@@ -441,6 +488,7 @@ const handleOperation = async ({ column, operation }) => {
       pageTableData.value.sort((a, b) => {
         return a[column] < b[column] ? 1 : -1;
       });
+      
       break;
     default:
       break;
@@ -558,6 +606,13 @@ const handleCurrentPageChange = async () => {
 </script>
 
 <style scoped>
+/* [data-popover-anchor] {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  visibility: hidden;
+} */
 .main-content {
   background-color: #f7f8fc;
   color: rgb(52, 55, 65);
@@ -765,7 +820,8 @@ const handleCurrentPageChange = async () => {
   display: flex;
   justify-content: left;
   align-items: center;
-  margin-top: 10px;
+  /* margin-top: 10px; */
+  padding:5px 0 5px 5px
 }
 
 .drawer-content {
