@@ -427,14 +427,14 @@ const handleOperation = async ({ column, operation }) => {
     case "sortAsc":
       sortBy.value = column;
       sortOrders.value = "ascending";
-      tableData.value.sort((a, b) => {
+      pageTableData.value.sort((a, b) => {
         return a[column] > b[column] ? 1 : -1;
       });
       break;
     case "sortDesc":
       sortBy.value = column;
       sortOrders.value = "descending";
-      tableData.value.sort((a, b) => {
+      pageTableData.value.sort((a, b) => {
         return a[column] < b[column] ? 1 : -1;
       });
       break;
