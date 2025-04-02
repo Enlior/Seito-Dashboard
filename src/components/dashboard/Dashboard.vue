@@ -309,10 +309,7 @@ const handleNextPage = async () => {
         lastEvaluatedkey = result.data.lastEvaluatedKey;
         tableData.value = [...tableData.value,...items];
         page.total = tableData.value.length;
-        pageTableData.value =tableData.value.slice((page.currentPage - 1)*page.pageSize, page.pageSize*page.currentPage)
-        pageTableData.value.forEach((item, index) => {
-        drawerState.value[index] = false;
-         });
+        updatePageData()
         items.map((v) => {
           const keys = Object.keys(v);
           columns.value = [...new Set([...columns.value, ...keys])];
@@ -335,13 +332,7 @@ const handleNextPage = async () => {
         console.error(err?.msg);
       });
   } else {
-    pageTableData.value = tableData.value.slice(
-      (page.currentPage - 1)*page.pageSize,
-      page.pageSize*page.currentPage
-    );
-    pageTableData.value.forEach((item, index) => {
-    drawerState.value[index] = false;
-  });
+  updatePageData()
   }
 };
 
@@ -356,7 +347,7 @@ const handlePopoverShow = (column) => {
 
 const loadData = async (searchParam) => {
   let params = {
-    size: 100,
+    size: page.pageSize*4,
     filterReq: {
       query: searchParam || [],
     },
@@ -367,13 +358,7 @@ const loadData = async (searchParam) => {
       lastEvaluatedkey = result.data.lastEvaluatedKey;
       tableData.value = items;
       page.total = tableData.value.length;
-      pageTableData.value = tableData.value.slice(
-        (page.currentPage - 1)*page.pageSize,
-        page.pageSize*page.currentPage
-      );
-      pageTableData.value.forEach((item, index) => {
-        drawerState.value[index] = false;
-      });
+      updatePageData()
       items.map((v) => {
         const keys = Object.keys(v);
         columns.value = [...new Set([...columns.value, ...keys])];
@@ -558,19 +543,19 @@ const handleChange = async (column) => {
   loadData(searchParam);
 };
 
+const updatePageData=()=>{
+  pageTableData.value = tableData.value.slice((page.currentPage - 1)*page.pageSize, page.pageSize*page.currentPage)
+  drawerState.value = new Array(pageTableData.value.length).fill(false)
+}
+
+
 const handlePagesizeChange = async () => {
   page.currentPage = 1;
-  pageTableData.value = tableData.value.slice((page.currentPage - 1)*page.pageSize, page.pageSize*page.currentPage)
-  pageTableData.value .forEach((item, index) => {
-    drawerState.value[index] = false;
-  });
+  updatePageData()
 };
 
 const handleCurrentPageChange = async () => {
-  pageTableData.value =tableData.value.slice((page.currentPage - 1)*page.pageSize, page.pageSize*page.currentPage)
-  pageTableData.value.forEach((item, index) => {
-    drawerState.value[index] = false;
-  });
+  updatePageData()
 };
 
 </script>

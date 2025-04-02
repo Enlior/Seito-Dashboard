@@ -102,9 +102,9 @@ const handleClose = () => {
 const copyToClipboard = async () => {
   try {
     await navigator.clipboard.writeText(JSON.stringify(props.data));
-    ElMessage.success("复制成功");
+    ElMessage.success(t("dashboard.copySuccess"));
   } catch (err) {
-    ElMessage.error("复制失败");
+    ElMessage.error(t("dashboard.copyFailed"));
   }
 };
 </script>
