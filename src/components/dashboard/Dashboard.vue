@@ -140,7 +140,6 @@
             >
             <template #header>
               <div class="header-container" >
-                <!-- @mouseenter="showMoreIcon(column,index-1)" -->
                   <span class="column-text"> {{ t("col." + column) }} </span>
 
                   <el-popover
@@ -152,18 +151,9 @@
                     placement="bottom-start"
                     :teleported="true"
                     :hide-after="500"
+                    v-if="dialogVisible"
+                    @before-leave="handlePopoverBeforeLeave"
                   >
-                  <!-- <el-popover
-                    :ref="(popover)=>{setPopoverRef(column,popover)}"
-                    :visible="activePopover === column"
-                    :virtual-ref="virtualRefMap[column]"
-                    virtaul-triggering
-                    trigger="click"
-                    :width="150"
-                    @hide="handlePopoverHide"
-                    placement="bottom-start"
-                    :teleported="false"
-                  > -->
                     <template #reference>
                       <div class="more-btn" @click="handlePopoverShow(column)" :data-popover-anchor="column">
                         <el-icon>
@@ -183,15 +173,6 @@
             </el-table-column>
           </el-table>
           <div class="pagination-block">
-            <!-- <el-pagination
-              v-model:current-page="page.currentPage"
-              v-model:page-size="page.pageSize"
-              :page-sizes="[10, 20, 30, 50]"
-              v-model:total="page.total"
-              layout="total, sizes, prev, pager, next, jumper"
-              @size-change="handlePagesizeChange"
-              @current-change="handleCurrentPageChange"
-            /> -->
             <el-pagination
               v-model:current-page="page.currentPage"
               v-model:page-size="page.pageSize"
@@ -201,7 +182,6 @@
               @size-change="handlePagesizeChange"
               v-model:total="page.total"
             />
-            <!-- <el-button @click="handleNextPage">下一页</el-button> -->
             <el-icon  @click="handleNextPage"  class="next-page-icon"><ArrowRightBold /></el-icon>
           </div>
         </el-col>
@@ -226,11 +206,9 @@ import {
   onMounted,
   computed,
   onBeforeUnmount,
-  nextTick
 } from "vue";
 import { useI18n } from "vue-i18n";
 const { t } = useI18n();
-// import CollectionInfo from "@/components/dashboard/CollectionInfo.vue";
 import { getCustomers } from "@/axios/api";
 import { Search } from "@element-plus/icons-vue";
 import DocumentDrawer from "@/components/dashboard/DocumentDrawer.vue";
@@ -245,8 +223,9 @@ const sortBy = ref(null);
 const sortOrders = ref(null);
 
 const activePopover = ref('')
-const popoverRefs =ref({})
-const virtualRefMap = ref({})
+
+const dialogVisible=ref(true)
+
 
 //列信息
 const columns = ref([]);
@@ -298,6 +277,13 @@ onMounted(async () => {
   })
   
 });
+
+const handlePopoverBeforeLeave=()=>{
+  dialogVisible.value = false
+  setTimeout(() => {
+    dialogVisible.value = true
+  }, 100)
+}
 
 // 计算可用高度
 const calculateTableHeight = () => {
@@ -365,22 +351,6 @@ const handlePopoverHide = () => {
 
 const handlePopoverShow = (column) => {
  activePopover.value =  activePopover.value === column ? '':  column;
-}
-
-
-
-const setPopoverRef = (column, popover) => {
-  if(popover){
-    popoverRefs.value[column] = popover;
-    //创建虚拟触发器
-    virtualRefMap.value[column] ={
-      getBoundingClientRect:()=>{
-        const trigger = document.querySelector(`[data-popover-trigger="${column}"]`);
-        return trigger?.getBoundingClientRect() || new DOMRect();
-      }
-    }
-
-  }
 }
 
 
@@ -606,13 +576,6 @@ const handleCurrentPageChange = async () => {
 </script>
 
 <style scoped>
-/* [data-popover-anchor] {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  visibility: hidden;
-} */
 .main-content {
   background-color: #f7f8fc;
   color: rgb(52, 55, 65);
