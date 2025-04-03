@@ -85,12 +85,13 @@
               :list="columns"
               :icon="dropdownIcon"
               :maxHeight="380"
+              @handleChangeColumns="handleChangeColumns"
             />
           </div>
           <el-table
             ref="mainTable"
             v-loading="loading"
-            :data="isRequestData ? pageTableData : filteredData"
+            :data="isRequestData ? tableData : filteredData"
             :height="tableHeight"
             stripe
             :sort-by="sortBy"
@@ -100,6 +101,9 @@
             cell-class-name="table-cell"
             class="custom-table"
             show-overflow-tooltip
+            v-el-table-infinite-scroll="loadMore"
+            :infinite-scroll-immediate="false"
+            :infinite-scroll-distance="50"
           >
             <template #empty>
               <div>{{ $t("table.notdata") }}</div>
@@ -188,7 +192,7 @@
             </el-table-column>
           </el-table>
           <div class="pagination-block">
-            <el-pagination
+            <!-- <el-pagination
               v-model:current-page="page.currentPage"
               v-model:page-size="page.pageSize"
               :page-sizes="[10, 25, 50,100]"
@@ -197,7 +201,8 @@
               @size-change="handlePagesizeChange"
               v-model:total="page.total"
             />
-            <el-icon  @click="handleNextPage"  class="next-page-icon"><ArrowRightBold /></el-icon>
+            <el-icon  @click="handleNextPage"  class="next-page-icon"><ArrowRightBold /></el-icon> -->
+            <span>{{t("dashboard.total")}}</span><span class="total-count">{{page.total}} </span><span>{{t("dashboard.records")}}</span>
           </div>
         </el-col>
       </el-row>
@@ -233,10 +238,12 @@ import DropdownMenuList from "./DropdownMenuList.vue";
 import OperationDetail from "./OperationDetail.vue";
 import Buttons from "@/components/button/Buttons.vue";
 import { ShowIcon,HideIcon,AscSortIcon, DescSortIcon} from "../../utils/icons";
-const dropdownIcon = ref(require("@/assets/add-remove-columns.png"));
+import { default as vElTableInfiniteScroll } from "el-table-infinite-scroll";
+import { debounce } from "@/utils/utils";
 
 const isRequestData = ref(false); //true 请求云上数据  false 本地数据
 
+const dropdownIcon = ref(require("@/assets/add-remove-columns.png"));
 const sortBy = ref(null);
 const sortOrders = ref(null);
 const activePopover = ref('')
@@ -329,6 +336,12 @@ const buttons = reactive([
   },
 ]);
 
+const handleChangeColumns = (cols)=>{
+  columns.value = cols;
+}
+
+
+
 onMounted(async () => {
   loadData();
 
@@ -368,6 +381,35 @@ const handleResize = () => {
   calculateTableHeight();
 }
 
+
+const loadMore =  debounce( ()=>{
+  let params = {
+      size: 100,
+      filterReq: {
+        query: searchInput.value || [],
+      },
+      lastEvaluatedKey: lastEvaluatedkey,
+    };
+    loading.value = true;
+    getCustomers(params)
+      .then((result) => {
+        loading.value = false;
+        const items = result.data.items;
+        lastEvaluatedkey = result.data.lastEvaluatedKey;
+        tableData.value = [...tableData.value,...items];
+        page.total = tableData.value.length;
+        items.map((v) => {
+          const keys = Object.keys(v);
+          columns.value = [...new Set([...columns.value, ...keys])];
+        });
+        updateSearchFormData();
+      })
+      .catch((err) => {
+        loading.value = false;
+        console.error(err?.msg);
+      });
+},500)
+
 const handlePopoverBeforeLeave=()=>{
   dialogVisible.value = false
   setTimeout(() => {
@@ -380,44 +422,58 @@ const calculateTableHeight = () => {
   const windowHeight = window.innerHeight;
   const topActionHeight = topActionRef.value?.offsetHeight || 0;
   const topHeight = searchHeader.value?.offsetHeight || 0;
-  const padding = 158; // 上下边距总和
+  const padding = 146; // 上下边距总和
   const height =  windowHeight - topActionHeight - topHeight - padding;
   tableHeight.value = height > 200 ? height : tableHeight.value;
 }
 
-const handleNextPage = async () => {
-  page.currentPage = page.currentPage + 1;
-  if (Math.floor(tableData.value.length / page.pageSize) < page.currentPage) {
-    let params = {
-      size: 100,
-      filterReq: {
-        query: searchInput.value || [],
-      },
-      lastEvaluatedKey: lastEvaluatedkey,
-    };
-    loading.value = true;
-    await getCustomers(params)
-      .then((result) => {
-        loading.value = false;
-        const items = result.data.items;
-        lastEvaluatedkey = result.data.lastEvaluatedKey;
-        tableData.value = [...tableData.value,...items];
-        page.total = tableData.value.length;
-        updatePageData()
-        items.map((v) => {
-          const keys = Object.keys(v);
-          columns.value = [...new Set([...columns.value, ...keys])];
-        });
-        updateSearchFormData();
-      })
-      .catch((err) => {
-        loading.value = false;
-        console.error(err?.msg);
-      });
-  } else {
-  updatePageData()
-  }
-};
+// const handleNextPage = async () => {
+//   page.currentPage = page.currentPage + 1;
+//   if (Math.floor(tableData.value.length / page.pageSize) < page.currentPage) {
+//     let params = {
+//       size: page.pageSize*4,
+//       filterReq: {
+//         query: searchInput.value || [],
+//       },
+//       lastEvaluatedKey: lastEvaluatedkey,
+//     };
+//     loading.value = true;
+//     await getCustomers(params)
+//       .then((result) => {
+//         loading.value = false;
+//         const items = result.data.items;
+//         lastEvaluatedkey = result.data.lastEvaluatedKey;
+//         tableData.value = [...tableData.value,...items];
+//         page.total = tableData.value.length;
+//         updatePageData()
+//         items.map((v) => {
+//           const keys = Object.keys(v);
+//           columns.value = [...new Set([...columns.value, ...keys])];
+//         });
+//         if(searchFormData.value.length === 0){
+//           const optionArr = getSelectOptions();
+//           selectOptions.value = optionArr;
+//           defaultSearchColumns.map((v)=>{
+//             searchFormData.value.push({
+//               label:v,
+//               prop:v,
+//               isInclude:true,
+//               value:[],
+//               searchInput:"",
+//               sortType:'asc',
+//               filterType:'Any'
+//             })
+//           });
+//         }
+//       })
+//       .catch((err) => {
+//         loading.value = false;
+//         console.error(err?.msg);
+//       });
+//   } else {
+//   updatePageData()
+//   }
+// };
 
 const handlePopoverHide = () => {
         activePopover.value = '';
@@ -675,30 +731,31 @@ const filteredData = computed(() => {
   });
 });
 
-const resetFilters = () => {
-  // 重置筛选条件
-  searchFormData.value.forEach(column => {
-    if (column.value) {
-      column.value = [];
-    }
-  });
-  filteredData.value = tableData.value; // 恢复原始数据
-};
+// const resetFilters = () => {
+//   // 重置筛选条件
+//   searchFormData.value.forEach(column => {
+//     if (column.value) {
+//       column.value = [];
+//     }
+//   });
+//   filteredData.value = tableData.value; // 恢复原始数据
+// };
 
 const updatePageData=()=>{
-  pageTableData.value = tableData.value.slice((page.currentPage - 1)*page.pageSize, page.pageSize*page.currentPage)
-  drawerState.value = new Array(pageTableData.value.length).fill(false)
+  //  pageTableData.value = tableData.value.slice((page.currentPage - 1)*page.pageSize, page.pageSize*page.currentPage)
+  // drawerState.value = new Array(pageTableData.value.length).fill(false)
+  drawerState.value = new Array(tableData.value.length).fill(false)
 }
 
 
-const handlePagesizeChange = async () => {
-  page.currentPage = 1;
-  updatePageData()
-};
+// const handlePagesizeChange = async () => {
+//   page.currentPage = 1;
+//   updatePageData()
+// };
 
-const handleCurrentPageChange = async () => {
-  updatePageData()
-};
+// const handleCurrentPageChange = async () => {
+//   updatePageData()
+// };
 
 </script>
 
@@ -711,6 +768,9 @@ const handleCurrentPageChange = async () => {
   padding: 5px 10px 5px 10px;
   background-color: #fafbfd;
   border-bottom:1px solid #ebeef5;
+}
+.total-count{
+  margin:0 10px
 }
 .main-content {
   background-color: #f7f8fc;
@@ -939,7 +999,8 @@ const handleCurrentPageChange = async () => {
   display: flex;
   justify-content: left;
   align-items: center;
-  padding:5px 10px;
+  padding:10px 10px;
+  font-size: 12px;
 }
 
 .drawer-content {
@@ -961,6 +1022,7 @@ const handleCurrentPageChange = async () => {
   display: flex;
   justify-content: center;
   align-items: center;
+  cursor: pointer;
 }
 </style>
 <style>
