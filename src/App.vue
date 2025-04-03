@@ -2,9 +2,7 @@
   <!-- <el-button @click="this.$router.push('/test')">switch test</el-button> -->
   <!-- <el-button @click="this.$router.push('/main')">switch table</el-button> -->
   <el-config-provider :locale="locale[$i18n.locale]">
-    <div id="app">
-      <router-view />
-    </div>
+    <router-view />
   </el-config-provider>
 </template>
 

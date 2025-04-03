@@ -1,5 +1,10 @@
+<!-- eslint-disable vue/multi-word-component-names -->
 <template>
-  <div class="main-content no-selected">
+  <div class="container">
+  <div ref="topActionRef" class="top-action-bar">
+      <el-checkbox v-model="isRequestData" :label="t('fullData')" size="large" border />
+  </div>
+  <div class="main-content">
     <div ref="searchHeader" class="top-content">
       <el-row class="search-form" :gutter="10">
         <el-col
@@ -33,7 +38,7 @@
               <el-input
                 v-model="column.searchInput"
                 size="default"
-                placeholder="Starts with..."
+                :placeholder="t('search.placeholder')"
                 :prefix-icon="Search"
                 clearable
                 @input="handleSearch(column.searchInput)"
@@ -85,7 +90,7 @@
           <el-table
             ref="mainTable"
             v-loading="loading"
-            :data="pageTableData"
+            :data="isRequestData ? pageTableData : filteredData"
             :height="tableHeight"
             stripe
             :sort-by="sortBy"
@@ -205,6 +210,7 @@
       @handleClose="handleDrawerClose"
     ></DocumentDrawer>
   </div>
+  </div>
 </template>
 
 <script setup>
@@ -229,14 +235,12 @@ import Buttons from "@/components/button/Buttons.vue";
 import { ShowIcon,HideIcon,AscSortIcon, DescSortIcon} from "../../utils/icons";
 const dropdownIcon = ref(require("@/assets/add-remove-columns.png"));
 
+const isRequestData = ref(false); //true 请求云上数据  false 本地数据
+
 const sortBy = ref(null);
 const sortOrders = ref(null);
-
 const activePopover = ref('')
-
 const dialogVisible=ref(true)
-
-
 //列信息
 const columns = ref([]);
 const searchInput = ref(""); //当前搜索下拉框数据条件
@@ -248,8 +252,10 @@ const colOptions = ref([]); //当前下拉框的数据
 // 表格数据
 const loading = ref(false);
 const tableData = ref([]);
+// const filteredData = ref([]);
 const pageTableData = ref([]);
-const tableHeight = ref(300);
+const tableHeight = ref(200);
+const topActionRef = ref(null);
 const searchHeader = ref(null);
 const mainTable = ref(null);
 
@@ -259,7 +265,7 @@ const drawerState = ref([]);
 const showColumnIcon = ref([]);
 let lastEvaluatedkey = {};
 
-const showIconInfo = ref(true);
+// const showIconInfo = ref(true);
 
 const page = reactive({
   currentPage: 1,
@@ -285,7 +291,6 @@ const buttons = reactive([
       return showSelcetOptions.value ? 'btn.showTips':'btn.hideTips'
     },
     eventFn: function () {
-      console.log("show",currentSelect.value);
       const allOptions = selectOptions.value[currentSelect.value.prop];
       const selectOption = currentSelect.value.value;
       if(showSelcetOptions.value){
@@ -318,7 +323,6 @@ const buttons = reactive([
       return showSelcetOptions.value ? false : true
     },
     eventFn: function () {
-      console.log("sort",currentSelect.value.sortType);
       const sort = currentSelect.value.sortType === 'asc' ? 'desc':'asc';
       currentSelect.value.sortType = sort;
     },
@@ -374,9 +378,11 @@ const handlePopoverBeforeLeave=()=>{
 // 计算可用高度
 const calculateTableHeight = () => {
   const windowHeight = window.innerHeight;
+  const topActionHeight = topActionRef.value?.offsetHeight || 0;
   const topHeight = searchHeader.value?.offsetHeight || 0;
-  const padding = 110; // 上下边距总和
-  tableHeight.value = windowHeight - topHeight - padding;
+  const padding = 158; // 上下边距总和
+  const height =  windowHeight - topActionHeight - topHeight - padding;
+  tableHeight.value = height > 200 ? height : tableHeight.value;
 }
 
 const handleNextPage = async () => {
@@ -451,9 +457,9 @@ const loadData = async (searchParam) => {
 };
 
 const updateSearchFormData = () =>{
-  const optionArr = getSelectOptions();
-  selectOptions.value = optionArr;
   if(searchFormData.value.length === 0){
+      const optionArr = getSelectOptions();
+      selectOptions.value = optionArr;
         defaultSearchColumns.map((v)=>{
           searchFormData.value.push({
             label:v,
@@ -466,7 +472,10 @@ const updateSearchFormData = () =>{
             // options:optionArr[v],
           })
        });
-  }  
+  }else if(!isRequestData.value){
+    const optionArr = getSelectOptions();
+    selectOptions.value = optionArr;
+  }
 }
 
 const handleOperation = async ({ column, operation }) => {
@@ -541,16 +550,18 @@ const swapElements = (arr, index) => {
   return arr;
 };
 
-const showOptinalMessage = () => {
-  showIconInfo.value = true;
-};
+// const showOptinalMessage = () => {
+//   showIconInfo.value = true;
+// };
 
 //获取下拉框数据
 const getSelectOptions = () => {
   const options = {};
   columns.value.forEach((column) => {
+    const data = isRequestData.value ? tableData.value : filteredData.value;
+    const hasModelName = column === 'modelName1' && selectOptions.value[columns];
     const uniqueValues = [
-      ...new Set(tableData.value.map((item) => item[column])),
+      ...new Set(data.filter(item => !hasModelName && item[column] != null && item[column] !== '').map((item) => item[column])),
     ];
     options[column] = uniqueValues.map((value) => ({
       label: column,
@@ -573,8 +584,8 @@ const handleDrawerClose = () => {
   });
 };
 
-watch(columns, (newVal, oldVal) => {
-  newVal.forEach((item, index) => {
+watch(columns, (newVal) => {
+  newVal.forEach(() => {
     showColumnIcon.value.push(false);
   });
 });
@@ -582,8 +593,6 @@ watch(columns, (newVal, oldVal) => {
 
 const handleSearch = (val) => {
   searchInput.value = val || '';
-  console.log(searchInput.value,colOptions.value);
-
 };
 
 // 过滤后的选项（计算属性）
@@ -620,28 +629,60 @@ const handleSelectToggle = (column,visible) => {
 }
 
 //下拉数据选中
-const handleChange = async (column) => {
-  console.log('selectVal',column);
+const handleChange = async () => {
   const searchParam = [];
   searchFormData.value.map((columns)=>{
     let item = columns.value;
-    if(!columns.isInclude){
-      const columnOptions = selectOptions.value[columns.prop].map(v=>{
-        return v.value
-      });
-      item = columnOptions.filter(v => !item.includes(v));
-    }
-    item.map((v)=>{
-      const params = {
-        attribute:columns.prop,
-        operator:'=',
-        value:v
+    if(item.length){
+      if(!columns.isInclude){
+        const columnOptions = selectOptions.value[columns.prop].map(v=>{
+          return v.value
+        });
+        item = columnOptions.filter(v => !item.includes(v));
       }
-      searchParam.push(params);
-    })
+      item.map((v)=>{
+        const params = {
+          attribute:columns.prop,
+          operator:'=',
+          value:v
+        }
+        searchParam.push(params);
+      })
+    }
   })
   //搜索
-  loadData(searchParam);
+  if(isRequestData.value){
+    loadData(searchParam);
+  }else{
+    applyFilters();
+  }
+};
+
+const applyFilters = () =>{
+  page.total = filteredData.value.length;
+  updateSearchFormData();
+}
+
+const filteredData = computed(() => {
+  return tableData.value.filter(item => {
+    return searchFormData.value.every((column)=>{
+      const searchVal = column.value;
+      if(searchVal.length === 0) return true;
+      return searchVal.some((val)=>{
+        return item[column.prop].toString().toLowerCase().includes(val.toString().toLowerCase());
+      })
+    });
+  });
+});
+
+const resetFilters = () => {
+  // 重置筛选条件
+  searchFormData.value.forEach(column => {
+    if (column.value) {
+      column.value = [];
+    }
+  });
+  filteredData.value = tableData.value; // 恢复原始数据
 };
 
 const updatePageData=()=>{
@@ -662,9 +703,28 @@ const handleCurrentPageChange = async () => {
 </script>
 
 <style scoped>
+.container{
+  overflow: hidden;
+  height: 100%;
+}
+.top-action-bar{
+  padding: 5px 10px 5px 10px;
+  background-color: #fafbfd;
+  border-bottom:1px solid #ebeef5;
+}
 .main-content {
   background-color: #f7f8fc;
   color: rgb(52, 55, 65);
+  height: calc(100% - 99px);
+  overflow-y: auto;
+}
+.top-content {
+  margin: 0 8px;
+  padding-bottom: 4px;
+  padding-top:5px;
+}
+.center-content {
+  padding: 5px 10px;
 }
 
 .header-icon {
@@ -702,15 +762,6 @@ const handleCurrentPageChange = async () => {
 
 .icon-box {
   margin-right: 5px;
-}
-
-.top-content {
-  margin: 0 8px;
-  padding-bottom: 4px;
-  padding-top: 8px;
-}
-.center-content {
-  padding: 5px 8px;
 }
 
 .right-btn {
@@ -876,7 +927,7 @@ const handleCurrentPageChange = async () => {
 .custom-table {
   border-radius: 6px;
   min-width: 120px;
-  min-height: 300px;
+  min-height: 200px;
 }
 
 .table-cell {

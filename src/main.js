@@ -5,6 +5,7 @@ import router from './router'
 import ElementPlus from 'element-plus';
 import 'element-plus/dist/index.css';
 import './assets/css/global.css'; // 引入公共样式
+import './assets/css/scrollbar.css'; // 滚动条样式
 //引入elementplus icon
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import i18n from "./language"
