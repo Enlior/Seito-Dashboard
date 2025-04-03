@@ -17,7 +17,7 @@
 </template>
 
 <script setup>
-import { ref, defineProps, watch,computed,onMounted } from 'vue';
+import { ref, defineProps, watch,computed,onMounted ,defineEmits} from 'vue';
 import { VueDraggable } from 'vue-draggable-plus';
 import { useI18n } from "vue-i18n";
 const { t } = useI18n();
@@ -54,6 +54,8 @@ const props = defineProps({
   }
 });
 
+const emit = defineEmits(["handleChangeColumns"]);
+
 const onUpdate = (evt) => {
   let oldIndex = evt.oldIndex;
   let newIndex = evt.newIndex;
@@ -70,14 +72,15 @@ const initCheckList = () => {
 };
 
 const changeColumnShow = ()=> {
-  console.log("change:"+checkList.value)
-  for(let column of props.list) {
-    if(checkList.value.indexOf(column)!=-1 ) {
-      column.isShow = true;
-    } else {
-      column.isShow = false;
-    }
-  }
+  // console.log("change:"+checkList.value)
+  // for(let column of props.list) {
+  //   if(checkList.value.indexOf(column)!=-1 ) {
+  //     column.isShow = true;
+  //   } else {
+  //     column.isShow = false;
+  //   }
+  // }
+  emit('handleChangeColumns',checkList.value)
 }
 
   // All currently selected IDS arrays

@@ -403,5 +403,7 @@
   "dashboard.moveRight": "Move Right",
   "dashboard.copyName":"Copy Name",
   "dashboard.copyColmunValue":"Copy Column",
-   "dashboard.moveColmun":"Move Column"
+   "dashboard.moveColmun":"Adjust Column",
+   "dashboard.total":"Total",
+   "dashboard.records":"Records"
 }
