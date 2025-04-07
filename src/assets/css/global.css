@@ -10,7 +10,7 @@
 
 /* CSS */
 html {
-    font-size: 12px; /* 默认字体大小 */
+    font-size: 0.875rem; /* 默认字体大小 */
 }
   
 @media (max-width: 768px) {

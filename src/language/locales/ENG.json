@@ -380,6 +380,7 @@
   "col.PK":"PK",
   "col.SK":"SK",
 
+  "fullData":"Full Data",
   "option":"option",
   "Include":"Include",
   "Exclude":"Exclude",
@@ -390,6 +391,7 @@
   "btn.sortAsc":"Ascending",
   "btn.sortDesc":"Descending",
   "noSelect":"You have no selections",
+  "search.placeholder":"Starts with...",
   
   "dashboard.totleRecord":"Total",
   "dashboard.pageSize":"page",
