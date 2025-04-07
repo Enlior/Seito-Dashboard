@@ -399,6 +399,15 @@ const loadMore =  debounce( ()=>{
           const keys = Object.keys(v);
           columns.value = [...new Set([...columns.value, ...keys])];
         });
+        tableData.value.map((v) => {
+          const keys = Object.keys(v);
+          let colArr = [...new Set([...columns.value, ...keys])];
+          colArr.map((col)=>{
+            let colObj = {name:col,isShow:true}
+          })
+          columns.value = colArr;
+          console.log('##$$$',columns.value)
+        });
         updateSearchFormData();
       })
       .catch((err) => {
@@ -492,13 +501,22 @@ const loadData = async (searchParam) => {
       loading.value = false;
       const items = result.data.items;
       lastEvaluatedkey = result.data.lastEvaluatedKey;
-      tableData.value = items;
+      tableData.value = [...tableData.value,...items];
       page.total = tableData.value.length;
       updatePageData()
       items.map((v) => {
         const keys = Object.keys(v);
         columns.value = [...new Set([...columns.value, ...keys])];
       });
+      tableData.value.map((v) => {
+          const keys = Object.keys(v);
+          let colArr = [...new Set([...columns.value, ...keys])];
+          colArr.map((col)=>{
+          return  {name:col,isShow:true}
+          })
+          columns.value = colArr;
+          console.log('##$$$',columns.value)
+        });
       updateSearchFormData();
     })
     .catch((err) => {
@@ -572,7 +590,8 @@ const handleOperation = async ({ column, operation }) => {
     case "sortAsc":
       sortBy.value = column;
       sortOrders.value = "ascending";
-      pageTableData.value.sort((a, b) => {
+      // pageTableData.value.sort((a, b) => {
+        tableData.value.sort((a, b) => {
         return a[column] > b[column] ? 1 : -1;
       });
    
@@ -580,7 +599,8 @@ const handleOperation = async ({ column, operation }) => {
     case "sortDesc":
       sortBy.value = column;
       sortOrders.value = "descending";
-      pageTableData.value.sort((a, b) => {
+      // pageTableData.value.sort((a, b) => {
+        tableData.value.sort((a, b) => {
         return a[column] < b[column] ? 1 : -1;
       });
       
