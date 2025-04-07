@@ -1,4 +1,5 @@
 const { defineConfig } = require('@vue/cli-service')
+const TerserPlugin = require('terser-webpack-plugin');
 module.exports = defineConfig({
   transpileDependencies: true,
   //关闭ESLINT检查
@@ -36,5 +37,20 @@ module.exports = defineConfig({
       });
       return definitions;
     });
+  },
+  // webpack 配置
+  configureWebpack: {
+    // 添加插件
+    plugins: [
+      new TerserPlugin({
+        terserOptions: {
+          mangle: true, // 开启变量名混淆
+          compress: {
+            drop_console: true, // 移除 console.log
+            drop_debugger: true // 移除 debugger
+          }
+        }
+      })
+    ]
   }
 })

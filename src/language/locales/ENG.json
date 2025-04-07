@@ -210,7 +210,7 @@
   "table.seated": "SEATED",
   "table.overtime": "OVERTIME",
   "table.gtMin": ">{min}Mins",
-  "table.notdata": "No Data",
+  "table.notdata": "No results found",
   "btn.tip.reset.pwd": "Reset password",
   "btn.tip.add": "Add record",
   "btn.tip.edit": "Edit record",

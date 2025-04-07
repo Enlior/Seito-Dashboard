@@ -18,4 +18,6 @@ import http from "./axios.js"
 export const getDocumentsByFilterColumn = p =>http.post('/api/getDocumentsByFilterColumn',p)
 
 
-export const getCustomers = (param) => http.post('/customers/search',param);
+export const getCustomersV1 = (param) => http.post('/customers/search',param);
+
+export const getCustomers = (param) => http.post('/customers/searchv2',param);

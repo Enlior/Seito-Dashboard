@@ -2,7 +2,7 @@
 <template>
   <div class="container">
   <div ref="topActionRef" class="top-action-bar">
-      <el-checkbox v-model="isRequestData" :label="t('fullData')" size="large" border />
+      <el-checkbox v-model="isRequestData" :label="t('fullData')" size="large" border @change="handleFullData"/>
   </div>
   <div class="main-content">
     <div ref="searchHeader" class="top-content">
@@ -19,6 +19,7 @@
             v-model="column.value"
             value-key="value"
             multiple
+            allow-create
             clearable
             size="large"
             :offset="0"
@@ -26,6 +27,7 @@
             :placeholder="column.filterType"
             :fit-input-width="true"
             @change="handleChange(column)"
+            @clear="setCurrentSelect(column)"
             @visible-change="handleSelectToggle(column, $event)"
           >
             <template #empty>
@@ -50,18 +52,34 @@
                 </span>
               </div>
             </template>
-            <el-option
+            <el-option-group
+              v-for="group in optionGroup"
+              :key="group.label"
+              :label="group.label"
+            >
+              <el-option
+                v-for="item in group.options"
+                :key="item.value"
+                :value="item.value"
+              >
+                <span class="option-text">{{ item.value }}</span>
+              </el-option>
+            </el-option-group>
+            <!-- <el-option
               v-for="item in filteredOptions"
               :key="item.value"
               :value="item.value"
             >
               <span class="option-text">{{ item.value }}</span>
-            </el-option>
+            </el-option> -->
             <template #tag>
               <div class="select-tag">
-              <span v-if="column.value.length" class="tag-status">{{column.isInclude?'':'NOT'}}</span>
-              <span class="tag-label" :title="column.value.join(',')">{{column.value.join(',')}}</span>
-              <span v-if="column.value.length" class="tag-count">{{column.value.length}}</span>
+                <span v-if="column.value.length" class="tag-status">{{column.isInclude?'':'NOT'}}</span>
+                <span class="tag-label">
+                  <span class="filterValid" :title="column.value.join(',')">{{column.value.join(',')}}</span>
+                  <span v-if="column.ignoredValue.length" class="filterInValid">{{','+column.value.join(',')}}</span>
+                </span>
+                <span v-if="column.value.length" class="tag-count">{{column.value.length}}</span>
               </div>
             </template>
             <template #footer>
@@ -91,7 +109,7 @@
           <el-table
             ref="mainTable"
             v-loading="loading"
-            :data="isRequestData ? tableData : filteredData"
+            :data="filteredData"
             :height="tableHeight"
             stripe
             :sort-by="sortBy"
@@ -226,6 +244,7 @@ import {
   onMounted,
   computed,
   onBeforeUnmount,
+  nextTick,
 } from "vue";
 import { useI18n } from "vue-i18n";
 const { t } = useI18n();
@@ -253,9 +272,11 @@ const columns = ref([]);
 const searchInput = ref(""); //当前搜索下拉框数据条件
 const searchFormData = ref([]); //搜索框表单数据
 const selectOptions = ref([]); //下拉框数据
+const ignoredOptions = ref([]); //下拉框数据
 const currentSelect = ref({}); //当前筛选字段
 const showSelcetOptions = ref(true); //选定选中选项
 const colOptions = ref([]); //当前下拉框的数据
+const searchParam = ref([]);
 // 表格数据
 const loading = ref(false);
 const tableData = ref([]);
@@ -386,7 +407,7 @@ const loadMore =  debounce( ()=>{
   let params = {
       size: 100,
       filterReq: {
-        query: searchInput.value || [],
+        query: searchParam.value || [],
       },
       lastEvaluatedKey: lastEvaluatedkey,
     };
@@ -402,7 +423,7 @@ const loadMore =  debounce( ()=>{
           const keys = Object.keys(v);
           columns.value = [...new Set([...columns.value, ...keys])];
         });
-        updateSearchFormData();
+        // updateSearchFormData();
       })
       .catch((err) => {
         loading.value = false;
@@ -484,11 +505,11 @@ const handlePopoverShow = (column) => {
 }
 
 
-const loadData = async (searchParam) => {
+const loadData = async () => {
   let params = {
     size: page.pageSize*4,
     filterReq: {
-      query: searchParam || [],
+      query: searchParam.value || [],
     },
   };
   loading.value = true;
@@ -512,31 +533,49 @@ const loadData = async (searchParam) => {
     });
 };
 
+const handleFullData = () =>{
+  // console.log('isRequestData',isRequestData.value);
+  searchFormData.value = [];
+  nextTick(()=>{
+    updateSearchFormData();
+  })
+}
+
 const updateSearchFormData = () =>{
+  
   if(searchFormData.value.length === 0){
-      const optionArr = getSelectOptions();
-      selectOptions.value = optionArr;
-        defaultSearchColumns.map((v)=>{
+      // const optionArr = getSelectOptions();
+      // selectOptions.value = optionArr.options;
+      // ignoredOptions.value = [];
+      defaultSearchColumns.map((v)=>{
           searchFormData.value.push({
             label:v,
             prop:v,
             isInclude:true,
             value:[],
+            ignoredValue:[],
             searchInput:"",
             sortType:'asc',
             filterType:'Any'
             // options:optionArr[v],
           })
-       });
-  }else if(!isRequestData.value){
-    const optionArr = getSelectOptions();
-    selectOptions.value = optionArr;
+      });
   }
+  // else if(!isRequestData.value){
+    // const optionArr = getSelectOptions();
+    // selectOptions.value = optionArr.options;
+    // ignoredOptions.value = optionArr.ignoredOptions;
+    // console.log('111111111',optionArr)
+  // }
+  const optionArr = getSelectOptions();
+    selectOptions.value = optionArr.options;
+    ignoredOptions.value = optionArr.ignoredOptions || [];
+    console.log('111111111',optionArr)
 }
 
 const handleOperation = async ({ column, operation }) => {
   switch (operation) {
-    case "moveLeft":
+    case "moveLeft":{
       if (column === columns.value[0]) {
         return;
       }
@@ -544,7 +583,8 @@ const handleOperation = async ({ column, operation }) => {
       columns.value = swapElements(columns.value, leftIndex);
       handlePopoverHide()
       break;
-    case "moveRight":
+      }
+    case "moveRight":{
       if (column === columns.value[columns.value.length - 1]) {
         return;
       }
@@ -555,6 +595,7 @@ const handleOperation = async ({ column, operation }) => {
       ];
       handlePopoverHide()
       break;
+    }
     case "copyName":
       try {
         await navigator.clipboard.writeText(column);
@@ -564,7 +605,7 @@ const handleOperation = async ({ column, operation }) => {
       }
   
       break;
-    case "copyColumn":
+    case "copyColumn":{
       let copArr = [];
       selectOptions.value[column].forEach((item) => {
         copArr.push(item.value);
@@ -577,6 +618,7 @@ const handleOperation = async ({ column, operation }) => {
       }
      
       break;
+    }
     case "sortAsc":
       sortBy.value = column;
       sortOrders.value = "ascending";
@@ -613,18 +655,48 @@ const swapElements = (arr, index) => {
 //获取下拉框数据
 const getSelectOptions = () => {
   const options = {};
+  const ignoredOptions = {};
   columns.value.forEach((column) => {
     const data = isRequestData.value ? tableData.value : filteredData.value;
-    const hasModelName = column === 'modelName1' && selectOptions.value[columns];
     const uniqueValues = [
-      ...new Set(data.filter(item => !hasModelName && item[column] != null && item[column] !== '').map((item) => item[column])),
+      ...new Set(data.filter(item => item[column] != null && item[column] !== '').map((item) => item[column])),
     ];
-    options[column] = uniqueValues.map((value) => ({
-      label: column,
-      value: value,
-    }));
+    const selectedOptions = searchFormData.value[column]?.value; //已选项
+    ignoredOptions[column] = selectedOptions?.map((option) => {
+      const hasOption = uniqueValues.filter((v)=> v === option.value);
+      if(!hasOption){
+        return hasOption;
+      }
+    }) || [];
+    const defaultOptions = selectOptions.value[column];
+    if(defaultOptions?.length > 0){
+      if(column==='modelName1'){
+        options[column] = defaultOptions;
+      }else if(column==='clientCode' && currentSelect.value.label !== 'modelName1'){
+        options[column] = defaultOptions;
+      }else{
+        options[column] = uniqueValues.map((value) => ({
+          label: column,
+          value: value,
+        }));
+      }
+    }else{
+      options[column] = uniqueValues.map((value) => ({
+        label: column,
+        value: value,
+      }));
+    }
+    
+    // else if((column==='modelName1' || column==='clientCode') && currentSelect.value.label === 'clientCode'){
+    //   options[column] = selectOptions.value[column];
+    // }else{
+      
+    // }
   });
-  return options;
+  return {
+    options,
+    ignoredOptions
+  };
 };
 
 const handleDrawerOpen = (rowData, index) => {
@@ -661,6 +733,17 @@ const filteredOptions = computed(() => {
   return sortArray(data, 'value', currentSelect.value.sortType);
 });
 
+const optionGroup = ref([
+  {
+    label: '',
+    options: filteredOptions,
+  },
+  {
+    label: 'Ignored selection',
+    options: [],
+  },
+]);
+
 
 const sortArray = (data, field, order = 'asc') => {
   return data.sort((a, b) => {
@@ -678,41 +761,69 @@ const sortArray = (data, field, order = 'asc') => {
 const handleSelectToggle = (column,visible) => {
   if (visible) {
     searchInput.value = column.searchInput || '';
-    currentSelect.value = column;
-    colOptions.value = selectOptions.value[column.prop];
+    setCurrentSelect(column);
     showSelcetOptions.value = true;
   }
 }
 
+const setCurrentSelect = (column) =>{
+  currentSelect.value = column;
+  colOptions.value = selectOptions.value[column.prop];
+}
+
 //下拉数据选中
-const handleChange = async () => {
-  const searchParam = [];
+const handleChange = debounce(() => {
+  searchParam.value = [];
   searchFormData.value.map((columns)=>{
+    //切换模型，清空其他数据
+    if(currentSelect.value.label === 'modelName1' && columns.label !== 'modelName1'){
+      columns.value = [];
+    }
+    // else if(currentSelect.value.label === 'clientCode' && (columns.label !== 'modelName1' || columns.label !== 'clientCode')){
+    //   columns.value = [];
+    // }
+    let dataArr = [];
     let item = columns.value;
-    if(item.length){
+    if(typeof(item) === 'string'){
+      dataArr.push(item);
+    }else{
+      dataArr = item;
+    }
+    if(dataArr?.length){
+      // if(!columns.isInclude){
+      //   const columnOptions = selectOptions.value[columns.prop].map(v=>{
+      //     return v.value
+      //   });
+      //   dataArr = columnOptions.filter(v => !dataArr.includes(v));
+      // }
+      const params = {
+        type:'logic',
+        logic:'OR', //OR/AND
+        negative:false,
+        items:[]
+      };
+      let operator = '=';
       if(!columns.isInclude){
-        const columnOptions = selectOptions.value[columns.prop].map(v=>{
-          return v.value
-        });
-        item = columnOptions.filter(v => !item.includes(v));
+        params.negative = true;
       }
-      item.map((v)=>{
-        const params = {
+      dataArr.map((v)=>{
+        const items = {
           attribute:columns.prop,
-          operator:'=',
+          operator:operator,
           value:v
         }
-        searchParam.push(params);
+        params.items.push(items);
       })
+      searchParam.value.push(params);
     }
   })
   //搜索
   if(isRequestData.value){
-    loadData(searchParam);
+    loadData();
   }else{
     applyFilters();
   }
-};
+}, 500) // 设置延迟时间为 500 毫秒);
 
 const applyFilters = () =>{
   page.total = filteredData.value.length;
@@ -720,42 +831,34 @@ const applyFilters = () =>{
 }
 
 const filteredData = computed(() => {
-  return tableData.value.filter(item => {
-    return searchFormData.value.every((column)=>{
-      const searchVal = column.value;
-      if(searchVal.length === 0) return true;
-      return searchVal.some((val)=>{
-        return item[column.prop].toString().toLowerCase().includes(val.toString().toLowerCase());
-      })
+  if(isRequestData.value){
+    return tableData.value;
+  }else{
+     return tableData.value.filter(item => {
+      return searchFormData.value.every((column)=>{
+        let searchVal = [];
+        const defaultOptions = selectOptions.value[column.label];
+        if(!column.isInclude){
+            searchVal = defaultOptions.some((v)=> {
+              return v !== column.value
+            });
+        }else{
+          searchVal = column.value;
+        }
+        if(searchVal.length === 0) return true;
+        return searchVal.some((val)=>{
+          return item[column.prop].toString().toLowerCase().includes(val.toString().toLowerCase());
+        })
+      });
     });
-  });
+  }
 });
-
-// const resetFilters = () => {
-//   // 重置筛选条件
-//   searchFormData.value.forEach(column => {
-//     if (column.value) {
-//       column.value = [];
-//     }
-//   });
-//   filteredData.value = tableData.value; // 恢复原始数据
-// };
 
 const updatePageData=()=>{
   //  pageTableData.value = tableData.value.slice((page.currentPage - 1)*page.pageSize, page.pageSize*page.currentPage)
   // drawerState.value = new Array(pageTableData.value.length).fill(false)
   drawerState.value = new Array(tableData.value.length).fill(false)
 }
-
-
-// const handlePagesizeChange = async () => {
-//   page.currentPage = 1;
-//   updatePageData()
-// };
-
-// const handleCurrentPageChange = async () => {
-//   updatePageData()
-// };
 
 </script>
 
@@ -934,12 +1037,19 @@ const updatePageData=()=>{
 }
 .form-select .tag-label{
   max-width: 290px;
-  color: rgb(52, 55, 65);
-  font-size: 1rem;
-  font-weight: 500;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+.form-select .tag-label .filterValid{
+  color: rgb(52, 55, 65);
+  font-size: 1.2rem;
+  font-weight: 500;
+}
+.form-select .tag-label .filterInValid{
+  color: #69707d;
+  font-weight: 400;
+  text-decoration: line-through;
 }
 .form-select .tag-count{
   position: absolute;

@@ -2,9 +2,10 @@ import axios from "axios";
 // import router from "../router";
 
 //创建一个axios实例
+const API_BASE = process.env.NODE_ENV === "development" ? "/":process.env.API_BASE_URL;
 const instance = axios.create({
   // baseURL:import.meta.env.API_URL||window.location.origin + '/api',
-  baseURL:'/',
+  baseURL:API_BASE,
   credentials:true,
   withCredentials: true, // 允许发送 Cookie
   // maxRedirects: 0, // 禁用自动重定向
