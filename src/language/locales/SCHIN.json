@@ -409,5 +409,7 @@
   "dashboard.moveRight": "右移",
   "dashboard.copyName":"复制列名",
   "dashboard.copyColmunValue":"复制列值",
-   "dashboard.moveColmun":"移动栏位"
+  "dashboard.moveColmun":"移动栏位",
+  "dashboard.total":"共",
+  "dashboard.records":"条记录"
 }
