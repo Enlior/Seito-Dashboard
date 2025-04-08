@@ -44,6 +44,7 @@
                 :prefix-icon="Search"
                 clearable
                 @input="handleSearch(column.searchInput)"
+                @keyup.enter="handleEnter(column.searchInput)"
               />
               <div class="select-header-options">
                 <span class="option-count">{{filteredOptions.length}} {{t('option')}}</span>
@@ -727,6 +728,12 @@ watch(columns, (newVal) => {
 const handleSearch = (val) => {
   searchInfo.searchInput = val || '';
 };
+
+const handleEnter = (val) =>{
+  const label = searchInfo.currentSelect.label;
+  searchInfo.colOptions.push({label: label, value: val})
+  searchInfo.currentSelect.value.push(val);
+}
 
 // 过滤后的选项（计算属性）
 const filteredOptions = computed(() => {
