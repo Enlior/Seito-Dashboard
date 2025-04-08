@@ -299,7 +299,7 @@ const searchParam = ref([]);
 const loading = ref(false);
 const tableData = ref([]);
 // const filteredData = ref([]);
-const pageTableData = ref([]);
+// const pageTableData = ref([]);
 const tableHeight = ref(200);
 const topActionRef = ref(null);
 const searchHeader = ref(null);
@@ -314,12 +314,12 @@ let lastEvaluatedkey = {};
 const scrollAble = ref(false)
 
 
-const handleScroll = (event) => {
-  console.log(event)
-//   const { scrollTop, scrollHeight, clientHeight } = event.target
-//   console.log(scrollTop, scrollHeight, clientHeight)
-// }
-} 
+// const handleScroll = (event) => {
+//   console.log(event)
+// //   const { scrollTop, scrollHeight, clientHeight } = event.target
+// //   console.log(scrollTop, scrollHeight, clientHeight)
+// // }
+// } 
 
 // const showIconInfo = ref(true);
 
@@ -434,7 +434,7 @@ const handleResize = () => {
 const loadMore =  debounce( ()=>{
   console.log('loadMore')
   if(scrollAble.value === true){
-    reture;
+    return;
   }
   let params = {
       size: 100,
@@ -627,7 +627,7 @@ const updateSearchFormData = () =>{
 
 const handleOperation = async ({ column, operation }) => {
   switch (operation) {
-    case "moveLeft":
+    case "moveLeft":{
       if (column === columns.value[0].name) {
         return;
       }
@@ -635,7 +635,8 @@ const handleOperation = async ({ column, operation }) => {
       columns.value = swapElements(columns.value, leftIndex);
       handlePopoverHide()
       break;
-    case "moveRight":
+    }
+    case "moveRight":{
       if (column === columns.value[columns.value.length - 1].name) {
         return;
       }
@@ -646,6 +647,7 @@ const handleOperation = async ({ column, operation }) => {
       ];
       handlePopoverHide()
       break;
+    }
     case "copyName":
       try {
         await navigator.clipboard.writeText(column);
