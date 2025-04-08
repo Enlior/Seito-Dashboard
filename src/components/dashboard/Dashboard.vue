@@ -102,9 +102,27 @@
             class="custom-table"
             show-overflow-tooltip
             v-el-table-infinite-scroll="loadMore"
-            :infinite-scroll-immediate="false"
-            :infinite-scroll-distance="50"
+            :infinite-scroll-disabled="scrollAble"
+            :infinite-scroll-distance="200"
+           
           >
+          <!-- <el-table
+            ref="mainTable"
+            v-loading="loading"
+            :data="isRequestData ? tableData : filteredData"
+            :height="tableHeight"
+            stripe
+            :sort-by="sortBy"
+            :sort-orders="sortOrders"
+            size="small"
+            :header-cell-style="{ 'text-align': 'left', color: '#1a1c21' }"
+            cell-class-name="table-cell"
+            class="custom-table"
+            show-overflow-tooltip
+            @scroll="handleScroll"
+           
+           
+          > -->
             <template #empty>
               <div>{{ $t("table.notdata") }}</div>
             </template>
@@ -151,19 +169,18 @@
             </el-table-column>
 
             <el-table-column
-              v-for="(column,index) in columns"
-              :key="`col-${column}-${index}`"
-              :prop="column"
-              :label="column"
+              v-for="(column,index) in columns.filter((c) => c.isShow)"
+              :key="`col-${column.name}-${index}`"
+              :prop="column.name"
+              :label="column.name"
               width="120"
             >
             <template #header>
               <div class="header-container" >
-                  <span class="column-text"> {{ t("col." + column) }} </span>
-
+                  <span class="column-text"> {{ t("col." + column.name) }} </span>
                   <el-popover
-                    :ref="`col-${column}-${index}`"
-                    :visible="activePopover === column"
+                    :ref="`col-${column.name}-${index}`"
+                    :visible="activePopover === column.name"
                     trigger="click"
                     :width="150"
                     @hide="handlePopoverHide"
@@ -174,7 +191,7 @@
                     @before-leave="handlePopoverBeforeLeave"
                   >
                     <template #reference>
-                      <div class="more-btn" @click="handlePopoverShow(column)" :data-popover-anchor="column">
+                      <div class="more-btn" @click="handlePopoverShow(column.name)" :data-popover-anchor="column.name">
                         <el-icon>
                           <More />
                         </el-icon>
@@ -182,7 +199,7 @@
                     </template>
                     <div  @mouseleave="handlePopoverHide">
                       <OperationDetail
-                        :column="column"
+                        :column="column.name"
                         @handleOperation="handleOperation"
                       ></OperationDetail>
                     </div>
@@ -241,6 +258,7 @@ import { ShowIcon,HideIcon,AscSortIcon, DescSortIcon} from "../../utils/icons";
 import { default as vElTableInfiniteScroll } from "el-table-infinite-scroll";
 import { debounce } from "@/utils/utils";
 
+
 const isRequestData = ref(false); //true 请求云上数据  false 本地数据
 
 const dropdownIcon = ref(require("@/assets/add-remove-columns.png"));
@@ -271,6 +289,16 @@ const jsonData = ref({});
 const drawerState = ref([]);
 const showColumnIcon = ref([]);
 let lastEvaluatedkey = {};
+
+const scrollAble = ref(false)
+
+
+const handleScroll = (event) => {
+  console.log(event)
+//   const { scrollTop, scrollHeight, clientHeight } = event.target
+//   console.log(scrollTop, scrollHeight, clientHeight)
+// }
+} 
 
 // const showIconInfo = ref(true);
 
@@ -383,6 +411,10 @@ const handleResize = () => {
 
 
 const loadMore =  debounce( ()=>{
+  console.log('loadMore')
+  if(scrollAble.value === true){
+    reture;
+  }
   let params = {
       size: 100,
       filterReq: {
@@ -395,22 +427,23 @@ const loadMore =  debounce( ()=>{
       .then((result) => {
         loading.value = false;
         const items = result.data.items;
+        if(items.length <page.pageSize*4){
+          scrollAble.value = true;
+        }else{
+          scrollAble.value = false;
+        }
         lastEvaluatedkey = result.data.lastEvaluatedKey;
         tableData.value = [...tableData.value,...items];
         page.total = tableData.value.length;
         items.map((v) => {
           const keys = Object.keys(v);
-          columns.value = [...new Set([...columns.value, ...keys])];
-        });
-        tableData.value.map((v) => {
-          const keys = Object.keys(v);
-          let colArr = [...new Set([...columns.value, ...keys])];
-          colArr.map((col)=>{
-            let colObj = {name:col,isShow:true}
+          keys.map((col) =>{
+            if(!columns.value.some((item) => item.name === col) ){
+              columns.value.push({name:col,isShow:true})
+            }
           })
-          columns.value = colArr;
-          console.log('##$$$',columns.value)
         });
+
         updateSearchFormData();
       })
       .catch((err) => {
@@ -505,6 +538,11 @@ const loadData = async (searchParam) => {
     .then((result) => {
       loading.value = false;
       const items = result.data.items;
+      if(items.length < page.pageSize*4){
+        scrollAble.value = true;
+      }else{
+        scrollAble.value = false;
+      }
       lastEvaluatedkey = result.data.lastEvaluatedKey;
       tableData.value = [...tableData.value,...items];
       page.total = tableData.value.length;
@@ -512,16 +550,13 @@ const loadData = async (searchParam) => {
       items.map((v) => {
         const keys = Object.keys(v);
         columns.value = [...new Set([...columns.value, ...keys])];
+        // keys.foreach(col =>{
+        //   columns.value.push({name:col,isShow:true})
+        // })
       });
-      tableData.value.map((v) => {
-          const keys = Object.keys(v);
-          let colArr = [...new Set([...columns.value, ...keys])];
-          colArr.map((col)=>{
-          return  {name:col,isShow:true}
-          })
-          columns.value = colArr;
-          console.log('##$$$',columns.value)
-        });
+     columns.value =  columns.value.map((col) =>{
+        return {name:col,isShow:true}
+      })
       updateSearchFormData();
     })
     .catch((err) => {
@@ -555,18 +590,18 @@ const updateSearchFormData = () =>{
 const handleOperation = async ({ column, operation }) => {
   switch (operation) {
     case "moveLeft":
-      if (column === columns.value[0]) {
+      if (column === columns.value[0].name) {
         return;
       }
-      let leftIndex = columns.value.findIndex((item) => item === column);
+      let leftIndex = columns.value.findIndex((item) => item.name === column);
       columns.value = swapElements(columns.value, leftIndex);
       handlePopoverHide()
       break;
     case "moveRight":
-      if (column === columns.value[columns.value.length - 1]) {
+      if (column === columns.value[columns.value.length - 1].name) {
         return;
       }
-      let rightIndex = columns.value.findIndex((item) => item === column);
+      let rightIndex = columns.value.findIndex((item) => item.name === column);
       [columns.value[rightIndex], columns.value[rightIndex + 1]] = [
         columns.value[rightIndex + 1],
         columns.value[rightIndex],
@@ -635,12 +670,12 @@ const getSelectOptions = () => {
   const options = {};
   columns.value.forEach((column) => {
     const data = isRequestData.value ? tableData.value : filteredData.value;
-    const hasModelName = column === 'modelName1' && selectOptions.value[columns];
+    const hasModelName = column.name === 'modelName1' && selectOptions.value[columns];
     const uniqueValues = [
-      ...new Set(data.filter(item => !hasModelName && item[column] != null && item[column] !== '').map((item) => item[column])),
+      ...new Set(data.filter(item => !hasModelName && item[column.name] != null && item[column.name] !== '').map((item) => item[column.name])),
     ];
-    options[column] = uniqueValues.map((value) => ({
-      label: column,
+    options[column.name] = uniqueValues.map((value) => ({
+      label: column.name,
       value: value,
     }));
   });
@@ -707,6 +742,7 @@ const handleSelectToggle = (column,visible) => {
 //下拉数据选中
 const handleChange = async () => {
   const searchParam = [];
+  scrollAble.value = false;
   searchFormData.value.map((columns)=>{
     let item = columns.value;
     if(item.length){
