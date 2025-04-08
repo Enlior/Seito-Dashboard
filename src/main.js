@@ -33,7 +33,6 @@ app.component('Tooltips', Tooltips);
 // import SeitoFrontendComponent from '../public/lib/frontend-component/dist/seito-frontend-component-library.umd.js';
 import SeitoFrontendComponent from'../public/lib/frontend-component/seitoComp.umd.js';
 import "../public/lib/frontend-component/seitoComp.css"
-
 app.config.errorHandler = (err) => {
     console.error('全局错误捕获:', err);
     // 可以在此处记录错误或展示用户友好的消息

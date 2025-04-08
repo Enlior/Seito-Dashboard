@@ -109,7 +109,7 @@
               @handleChangeColumns="handleChangeColumns"
             />
           </div>
-          <el-table
+          <!-- <el-table
             ref="mainTable"
             v-loading="loading"
             :data="filteredData"
@@ -126,7 +126,22 @@
             :infinite-scroll-disabled="scrollAble"
             :infinite-scroll-distance="200"
             :infinite-scroll-immediate="false"
-          >
+          > -->
+          <el-table
+                ref="tableRef"
+                v-loading="loading"
+                :data="filteredData"
+                :height="tableHeight"
+                stripe
+                :sort-by="sortBy"
+                :sort-orders="sortOrders"
+                size="small"
+                :header-cell-style="{ 'text-align': 'left', color: '#1a1c21' }"
+                cell-class-name="table-cell"
+                class="custom-table"
+                show-overflow-tooltip
+                @scroll="handleScroll"
+              >
             <template #empty>
               <div>{{ $t("table.notdata") }}</div>
             </template>
@@ -223,19 +238,21 @@
               v-model:total="page.total"
             />
             <el-icon  @click="handleNextPage"  class="next-page-icon"><ArrowRightBold /></el-icon> -->
-            <span>{{t("dashboard.total")}}</span><span class="total-count">{{page.total}} </span><span>{{t("dashboard.records")}}</span>
-          </div>
-        </el-col>
-      </el-row>
+              <span>{{ t("dashboard.total") }}</span
+              ><span class="total-count">{{ page.total }} </span
+              ><span>{{ t("dashboard.records") }}</span>
+            </div>
+          </el-col>
+        </el-row>
+      </div>
+      <DocumentDrawer
+        direction="rtl"
+        title="JSON"
+        :drawerVisible="drawerVisible"
+        :data="jsonData"
+        @handleClose="handleDrawerClose"
+      ></DocumentDrawer>
     </div>
-    <DocumentDrawer
-      direction="rtl"
-      title="JSON"
-      :drawerVisible="drawerVisible"
-      :data="jsonData"
-      @handleClose="handleDrawerClose"
-    ></DocumentDrawer>
-  </div>
   </div>
 </template>
 
@@ -254,21 +271,25 @@ const { t } = useI18n();
 import { getCustomers } from "@/axios/api";
 import { Search } from "@element-plus/icons-vue";
 import DocumentDrawer from "@/components/dashboard/DocumentDrawer.vue";
-import { defaultSearchColumns } from "@/utils/fields"
+import { defaultSearchColumns } from "@/utils/fields";
 import { ElMessage } from "element-plus";
 import DropdownMenuList from "./DropdownMenuList.vue";
 import OperationDetail from "./OperationDetail.vue";
 import Buttons from "@/components/button/Buttons.vue";
-import { ShowIcon,HideIcon,AscSortIcon, DescSortIcon} from "../../utils/icons";
-import { default as vElTableInfiniteScroll } from "el-table-infinite-scroll";
+import {
+  ShowIcon,
+  HideIcon,
+  AscSortIcon,
+  DescSortIcon,
+} from "../../utils/icons";
 import { debounce } from "@/utils/utils";
 const dropdownIcon = ref(require("@/assets/add-remove-columns.png"));
 
 const isRequestData = ref(false); //true 请求云上数据  false 本地数据
 const sortBy = ref(null);
 const sortOrders = ref(null);
-const activePopover = ref('')
-const dialogVisible=ref(true)
+const activePopover = ref("");
+const dialogVisible = ref(true);
 //列信息
 const columns = ref([]);
 const searchInfo = reactive({
@@ -289,7 +310,7 @@ const tableData = ref([]);
 const tableHeight = ref(200);
 const topActionRef = ref(null);
 const searchHeader = ref(null);
-const mainTable = ref(null);
+const tableRef = ref(null);
 
 const drawerVisible = ref(false);
 const jsonData = ref({});
@@ -297,15 +318,19 @@ const drawerState = ref([]);
 const showColumnIcon = ref([]);
 let lastEvaluatedkey = {};
 
-const scrollAble = ref(false)
+const scrollAble = ref(false);
 
-
-// const handleScroll = (event) => {
-//   console.log(event)
-// //   const { scrollTop, scrollHeight, clientHeight } = event.target
-// //   console.log(scrollTop, scrollHeight, clientHeight)
-// // }
-// } 
+const handleScroll = (e) => {
+  if(e.scrollTop == 0){
+    return;
+  }
+ const scrollHeight = tableRef.value.$refs.bodyWrapper.scrollHeight;
+ const clientHeight = tableRef.value.$refs.tableBody.clientHeight;
+ const scrollTop = e.scrollTop;
+ if(scrollHeight +scrollTop >= clientHeight){
+  loadMore();
+ }
+};
 
 // const showIconInfo = ref(true);
 
@@ -323,12 +348,12 @@ const buttons = reactive([
     get svg(){
       return searchInfo.showSelcetOptions ? ShowIcon:HideIcon
     },
-    link:true,
+    link: true,
     className: "btn-icon",
     get iconClass(){
       return searchInfo.showSelcetOptions ? 'btn-show':'btn-hide'
     },
-    tooltipsPlacement:'top',
+    tooltipsPlacement: "top",
     get tooltipsText() {
       return searchInfo.showSelcetOptions ? 'btn.showTips':'btn.hideTips'
     },
@@ -352,12 +377,12 @@ const buttons = reactive([
     get svg(){
       return searchInfo.currentSelect.sortType === 'asc' ? AscSortIcon:DescSortIcon
     },
-    link:true,
+    link: true,
     className: "btn-icon",
     get iconClass(){
       return searchInfo.showSelcetOptions ? 'btn-sort':'btn-sort disable'
     },
-    tooltipsPlacement:'top',
+    tooltipsPlacement: "top",
     get tooltipsText() {
       return (searchInfo.showSelcetOptions && searchInfo.colOptions.length > 0) ?(searchInfo.currentSelect.sortType === 'asc' ?'btn.sortAsc':'btn.sortDesc'):'btn.noDataSort'
     },
@@ -371,34 +396,30 @@ const buttons = reactive([
   },
 ]);
 
-const handleChangeColumns = (cols)=>{
+const handleChangeColumns = (cols) => {
   columns.value = cols;
-}
-
-
+};
 
 onMounted(async () => {
   loadData();
 
   // 首次计算
   handleResize();
-  
-  
+
   // 窗口变化监听
-  window.addEventListener('resize', handleResize);
-  
+  window.addEventListener("resize", handleResize);
+
   // 监听搜索栏高度变化
   const resizeObserver = new ResizeObserver(handleResize);
   if (searchHeader.value) {
     resizeObserver.observe(searchHeader.value);
   }
-  
+
   // 组件卸载时清理
   onBeforeUnmount(() => {
-    window.removeEventListener('resize', handleResize);
-    resizeObserver.disconnect()
-  })
-  
+    window.removeEventListener("resize", handleResize);
+    resizeObserver.disconnect();
+  });
 });
 
 const columnWidth = ref(6);
@@ -414,8 +435,7 @@ const handleResize = () => {
     columnWidth.value = 6; // 大屏幕时占三分之一
   }
   calculateTableHeight();
-}
-
+};
 
 const loadMore =  debounce( ()=>{
   if(scrollAble.value === true){
@@ -457,12 +477,12 @@ const loadMore =  debounce( ()=>{
       });
 },500)
 
-const handlePopoverBeforeLeave=()=>{
-  dialogVisible.value = false
+const handlePopoverBeforeLeave = () => {
+  dialogVisible.value = false;
   setTimeout(() => {
-    dialogVisible.value = true
-  }, 100)
-}
+    dialogVisible.value = true;
+  }, 100);
+};
 
 // 计算可用高度
 const calculateTableHeight = () => {
@@ -470,22 +490,21 @@ const calculateTableHeight = () => {
   const topActionHeight = topActionRef.value?.offsetHeight || 0;
   const topHeight = searchHeader.value?.offsetHeight || 0;
   const padding = 146; // 上下边距总和
-  const height =  windowHeight - topActionHeight - topHeight - padding;
+  const height = windowHeight - topActionHeight - topHeight - padding;
   tableHeight.value = height > 200 ? height : tableHeight.value;
 }
 
 const handlePopoverHide = () => {
-        activePopover.value = '';
+  activePopover.value = "";
 };
 
 const handlePopoverShow = (column) => {
- activePopover.value =  activePopover.value === column ? '':  column;
-}
-
+  activePopover.value = activePopover.value === column ? "" : column;
+};
 
 const loadData = async () => {
   let params = {
-    size: page.pageSize*4,
+    size: page.pageSize * 4,
     filterReq: {
       query: searchInfo.searchParam || [],
     },
@@ -496,9 +515,9 @@ const loadData = async () => {
     .then((result) => {
       loading.value = false;
       const items = result.data.items;
-      if(items.length < page.pageSize*4){
+      if (items.length < page.pageSize * 4) {
         scrollAble.value = true;
-      }else{
+      } else {
         scrollAble.value = false;
       }
       lastEvaluatedkey = result.data.lastEvaluatedKey;
@@ -552,10 +571,10 @@ const updateSearchFormData = () =>{
       });
   }
   // else if(!isRequestData.value){
-    // const optionArr = getSelectOptions();
-    // selectOptions.value = optionArr.options;
-    // ignoredOptions.value = optionArr.ignoredOptions;
-    // console.log('111111111',optionArr)
+  // const optionArr = getSelectOptions();
+  // selectOptions.value = optionArr.options;
+  // ignoredOptions.value = optionArr.ignoredOptions;
+  // console.log('111111111',optionArr)
   // }
   const optionArr = getSelectOptions();
   searchInfo.selectOptions = optionArr.options;
@@ -626,16 +645,16 @@ const getSelectOptions = () => {
 
 const handleOperation = async ({ column, operation }) => {
   switch (operation) {
-    case "moveLeft":{
+    case "moveLeft": {
       if (column === columns.value[0].name) {
         return;
       }
       let leftIndex = columns.value.findIndex((item) => item.name === column);
       columns.value = swapElements(columns.value, leftIndex);
-      handlePopoverHide()
+      handlePopoverHide();
       break;
     }
-    case "moveRight":{
+    case "moveRight": {
       if (column === columns.value[columns.value.length - 1].name) {
         return;
       }
@@ -644,7 +663,7 @@ const handleOperation = async ({ column, operation }) => {
         columns.value[rightIndex + 1],
         columns.value[rightIndex],
       ];
-      handlePopoverHide()
+      handlePopoverHide();
       break;
     }
     case "copyName":
@@ -654,9 +673,9 @@ const handleOperation = async ({ column, operation }) => {
       } catch (err) {
         ElMessage.error(t("dashboard.copyFailed"));
       }
-  
+
       break;
-    case "copyColumn":{
+    case "copyColumn": {
       let copArr = [];
       searchInfo.selectOptions[column].forEach((item) => {
         copArr.push(item.value);
@@ -667,26 +686,26 @@ const handleOperation = async ({ column, operation }) => {
       } catch (err) {
         ElMessage.error(t("dashboard.copyFailed"));
       }
-     
+
       break;
     }
     case "sortAsc":
       sortBy.value = column;
       sortOrders.value = "ascending";
       // pageTableData.value.sort((a, b) => {
-        tableData.value.sort((a, b) => {
+      tableData.value.sort((a, b) => {
         return a[column] > b[column] ? 1 : -1;
       });
-   
+
       break;
     case "sortDesc":
       sortBy.value = column;
       sortOrders.value = "descending";
       // pageTableData.value.sort((a, b) => {
-        tableData.value.sort((a, b) => {
+      tableData.value.sort((a, b) => {
         return a[column] < b[column] ? 1 : -1;
       });
-      
+
       break;
     default:
       break;
@@ -724,7 +743,6 @@ watch(columns, (newVal) => {
   });
 });
 
-
 const handleSearch = (val) => {
   searchInfo.searchInput = val || '';
 };
@@ -751,7 +769,7 @@ const ignoredOptions = computed(() => {
 
 const optionGroup = ref([
   {
-    label: '',
+    label: "",
     options: filteredOptions,
   },
   {
@@ -760,27 +778,26 @@ const optionGroup = ref([
   },
 ]);
 
-
-const sortArray = (data, field, order = 'asc') => {
+const sortArray = (data, field, order = "asc") => {
   return data.sort((a, b) => {
     if (a[field] < b[field]) {
-      return order === 'asc' ? -1 : 1;
+      return order === "asc" ? -1 : 1;
     }
     if (a[field] > b[field]) {
-      return order === 'asc' ? 1 : -1;
+      return order === "asc" ? 1 : -1;
     }
     return 0;
   });
-}
+};
 
 // 监听下拉框状态
-const handleSelectToggle = (column,visible) => {
+const handleSelectToggle = (column, visible) => {
   if (visible) {
     searchInfo.searchInput = column.searchInput || '';
     setCurrentSelect(column);
     searchInfo.showSelcetOptions = true;
   }
-}
+};
 
 const setCurrentSelect = (column) =>{
   searchInfo.currentSelect = column;
@@ -812,21 +829,21 @@ const handleChange = debounce(() => {
     let item = columnItem.value;
     if(typeof(item) === 'string'){
       dataArr.push(item);
-    }else{
+    } else {
       dataArr = item;
     }
     if(dataArr?.length){
       const params = {
-        type:'logic',
-        logic:'OR', //OR/AND
-        negative:false,
-        items:[]
+        type: "logic",
+        logic: "OR", //OR/AND
+        negative: false,
+        items: [],
       };
       let operator = '=';
       if(!columnItem.isInclude){
         params.negative = true;
       }
-      dataArr.map((v)=>{
+      dataArr.map((v) => {
         const items = {
           attribute:columnItem.prop,
           operator:operator,
@@ -836,22 +853,22 @@ const handleChange = debounce(() => {
       })
       searchInfo.searchParam.push(params);
     }
-  })
+  });
   //搜索
-  if(isRequestData.value){
+  if (isRequestData.value) {
     loadData();
-  }else{
+  } else {
     applyFilters();
   }
-}, 500) // 设置延迟时间为 500 毫秒);
+}, 500); // 设置延迟时间为 500 毫秒);
 
-const applyFilters = () =>{
+const applyFilters = () => {
   page.total = filteredData.value.length;
   updateSearchFormData();
-}
+};
 
 const filteredData = computed(() => {
-  if(isRequestData.value){
+  if (isRequestData.value) {
     return tableData.value;
   }else{
      return tableData.value.filter(item => {
@@ -880,38 +897,42 @@ const filteredData = computed(() => {
   }
 });
 
-const updatePageData=()=>{
+const updatePageData = () => {
   //  pageTableData.value = tableData.value.slice((page.currentPage - 1)*page.pageSize, page.pageSize*page.currentPage)
   // drawerState.value = new Array(pageTableData.value.length).fill(false)
-  drawerState.value = new Array(tableData.value.length).fill(false)
-}
-
+  drawerState.value = new Array(tableData.value.length).fill(false);
+};
 </script>
 
 <style scoped>
-.container{
+.container {
   overflow: hidden;
   height: 100%;
 }
-.top-action-bar{
+
+.top-action-bar {
   padding: 5px 10px 5px 10px;
   background-color: #fafbfd;
-  border-bottom:1px solid #ebeef5;
+  border-bottom: 1px solid #ebeef5;
 }
-.total-count{
-  margin:0 10px
+
+.total-count {
+  margin: 0 10px;
 }
+
 .main-content {
   background-color: #f7f8fc;
   color: rgb(52, 55, 65);
   height: calc(100% - 99px);
   overflow-y: auto;
 }
+
 .top-content {
   margin: 0 8px;
   padding-bottom: 4px;
-  padding-top:5px;
+  padding-top: 5px;
 }
+
 .center-content {
   padding: 5px 10px;
 }
@@ -944,6 +965,7 @@ const updatePageData=()=>{
 .header-container:hover .more-btn {
   display: block;
 }
+
 .optional-row-message {
   display: flex;
   margin: 3px 0;
@@ -988,7 +1010,7 @@ const updatePageData=()=>{
   height: 100%;
 }
 
-.next-page-icon{
+.next-page-icon {
   cursor: pointer;
   margin-left: 5px;
 }
@@ -1032,7 +1054,8 @@ const updatePageData=()=>{
   flex: 1;
 }
 
-.form-select :deep(.el-select__wrapper),.form-select:hover :deep(.el-select__wrapper)  {
+.form-select :deep(.el-select__wrapper),
+.form-select:hover :deep(.el-select__wrapper) {
   height: 38px;
   line-height: 38px;
   border: 1px solid #d3dae6e6;
@@ -1042,42 +1065,49 @@ const updatePageData=()=>{
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
 }
-.form-select :deep(.el-select__selected-item.el-tooltip__trigger){
-    position: absolute;
-    right: 0;
+
+.form-select :deep(.el-select__selected-item.el-tooltip__trigger) {
+  position: absolute;
+  right: 0;
 }
 
-.form-select :deep(.el-tag){
+.form-select :deep(.el-tag) {
   background-color: transparent;
   padding: 0;
   color: #000;
 }
-.form-select .select-tag{
+
+.form-select .select-tag {
   display: inline-flex;
 }
-.form-select .tag-status{
+
+.form-select .tag-status {
   color: #bd271e;
   font-size: 1rem;
   font-weight: 600;
   margin-right: 5px;
 }
-.form-select .tag-label{
+
+.form-select .tag-label {
   max-width: 290px;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
-.form-select .tag-label .filterValid{
+
+.form-select .tag-label .filterValid {
   color: rgb(52, 55, 65);
   font-size: 1.2rem;
   font-weight: 500;
 }
-.form-select .tag-label .filterInValid{
+
+.form-select .tag-label .filterInValid {
   color: #69707d;
   font-weight: 400;
   text-decoration: line-through;
 }
-.form-select .tag-count{
+
+.form-select .tag-count {
   position: absolute;
   right: 0;
   top: 11px;
@@ -1094,7 +1124,7 @@ const updatePageData=()=>{
   cursor: inherit;
 }
 
-.select-header-options{
+.select-header-options {
   display: inline-flex;
   width: 100%;
   justify-content: center;
@@ -1102,22 +1132,24 @@ const updatePageData=()=>{
   text-align: center;
   padding-top: 5px;
 }
-.select-header-options .option-count{
-  
+
+.select-header-options .option-count {
 }
-.select-header-options .option-btn{
+
+.select-header-options .option-btn {
   flex: 1;
   text-align: right;
 }
 
-:deep(.el-select-dropdown__footer){
+:deep(.el-select-dropdown__footer) {
   background-color: rgb(247, 248, 252);
 }
-.radio-group{
-    /* padding: 2px; */
-    background-color: rgb(249, 251, 253);
-    /* border: 1px solid rgba(211, 218, 230, 0.9); */
-    border-radius: 4px;
+
+.radio-group {
+  /* padding: 2px; */
+  background-color: rgb(249, 251, 253);
+  /* border: 1px solid rgba(211, 218, 230, 0.9); */
+  border-radius: 4px;
 }
 
 .custom-table {
@@ -1135,7 +1167,7 @@ const updatePageData=()=>{
   display: flex;
   justify-content: left;
   align-items: center;
-  padding:10px 10px;
+  padding: 10px 10px;
   font-size: 12px;
 }
 
@@ -1162,31 +1194,31 @@ const updatePageData=()=>{
 }
 </style>
 <style>
-.el-select-dropdown__header{
+.el-select-dropdown__header {
   padding: 10px 10px 5px 10px !important;
 }
 
-.option-btn .btn-icon{
+.option-btn .btn-icon {
   width: 20px;
   height: 20px;
 }
 
-.btn-show{
- padding: 3px;
+.btn-show {
+  padding: 3px;
 }
 
-.btn-hide{
+.btn-hide {
   padding: 3px;
   border-radius: 4px;
   color: rgb(0, 97, 166);
   background-color: rgb(204, 228, 245);
 }
 
-.btn-sort{
+.btn-sort {
   cursor: pointer;
 }
 
-.btn-sort.disable{
+.btn-sort.disable {
   cursor: no-drop;
   opacity: 0.3;
 }
