@@ -1,141 +1,135 @@
 <!-- eslint-disable vue/multi-word-component-names -->
 <template>
   <div class="container">
-    <div ref="topActionRef" class="top-action-bar">
-      <el-checkbox
-        v-model="isRequestData"
-        :label="t('fullData')"
-        size="large"
-        border
-        @change="handleFullData"
-      />
-    </div>
-    <div class="main-content">
-      <div ref="searchHeader" class="top-content">
-        <el-row class="search-form" :gutter="10">
-          <el-col
-            class="form-item"
-            :span="columnWidth"
-            v-for="column in searchFormData"
-            :key="column"
+  <div ref="topActionRef" class="top-action-bar">
+      <el-checkbox v-model="isRequestData" :label="t('fullData')" size="large" border @change="handleFullData"/>
+  </div>
+  <div class="main-content">
+    <div ref="searchHeader" class="top-content">
+      <el-row class="search-form" :gutter="10">
+        <el-col
+          class="form-item"
+          :span="columnWidth"
+          v-for="column in searchInfo.searchFormData"
+          :key="column.label"
+        >
+          <span class="form-label">{{ t(column.label) }}</span>
+          <el-select
+            class="form-select"
+            v-model="column.value"
+            value-key="value"
+            multiple
+            allow-create
+            clearable
+            size="large"
+            :offset="0"
+            :show-arrow="false"
+            :placeholder="column.filterType"
+            :fit-input-width="true"
+            @change="handleChange(column)"
+            @clear="setCurrentSelect(column)"
+            @visible-change="handleSelectToggle(column, $event)"
           >
-            <span class="form-label">{{ t(column.label) }}</span>
-            <el-select
-              class="form-select"
-              v-model="column.value"
-              value-key="value"
-              multiple
-              allow-create
-              clearable
-              size="large"
-              :offset="0"
-              :show-arrow="false"
-              :placeholder="column.filterType"
-              :fit-input-width="true"
-              @change="handleChange(column)"
-              @clear="setCurrentSelect(column)"
-              @visible-change="handleSelectToggle(column, $event)"
+            <template #empty>
+              <div>{{ $t("noSelect") }}</div>
+            </template>
+            <!-- :multiple-limit="1" -->
+            <!-- @focus="handleFocus(columns[index])" -->
+            <!-- @clear="handleClear(index)" -->
+            <template #header>
+              <el-input
+                v-model="column.searchInput"
+                size="default"
+                :placeholder="t('search.placeholder')"
+                :prefix-icon="Search"
+                clearable
+                @input="handleSearch(column.searchInput)"
+              />
+              <div class="select-header-options">
+                <span class="option-count">{{filteredOptions.length}} {{t('option')}}</span>
+                <span class="option-btn">
+                  <Buttons :buttons="buttons"></Buttons>
+                </span>
+              </div>
+            </template>
+            <el-option-group
+              v-for="group in optionGroup"
+              :key="group.label"
+              :label="group.label"
             >
-              <template #empty>
-                <div>{{ $t("noSelect") }}</div>
-              </template>
-              <!-- :multiple-limit="1" -->
-              <!-- @focus="handleFocus(columns[index])" -->
-              <!-- @clear="handleClear(index)" -->
-              <template #header>
-                <el-input
-                  v-model="column.searchInput"
-                  size="default"
-                  :placeholder="t('search.placeholder')"
-                  :prefix-icon="Search"
-                  clearable
-                  @input="handleSearch(column.searchInput)"
-                />
-                <div class="select-header-options">
-                  <span class="option-count"
-                    >{{ filteredOptions.length }} {{ t("option") }}</span
-                  >
-                  <span class="option-btn">
-                    <Buttons :buttons="buttons"></Buttons>
-                  </span>
-                </div>
-              </template>
-              <el-option-group
-                v-for="group in optionGroup"
-                :key="group.label"
-                :label="group.label"
+              <el-option
+                v-for="item in group.options"
+                :key="item.value"
+                :value="item.value"
+                :disabled="item.disabled"
+                :class="item.disabled ? 'filterInValid' : ''"
               >
-                <el-option
-                  v-for="item in group.options"
-                  :key="item.value"
-                  :value="item.value"
-                >
-                  <span class="option-text">{{ item.value }}</span>
-                </el-option>
-              </el-option-group>
-              <!-- <el-option
+                <span class="option-text">{{ item.value }}</span>
+              </el-option>
+            </el-option-group>
+            <!-- <el-option
               v-for="item in filteredOptions"
               :key="item.value"
               :value="item.value"
             >
               <span class="option-text">{{ item.value }}</span>
             </el-option> -->
-              <template #tag>
-                <div class="select-tag">
-                  <span v-if="column.value.length" class="tag-status">{{
-                    column.isInclude ? "" : "NOT"
-                  }}</span>
-                  <span class="tag-label">
-                    <span class="filterValid" :title="column.value.join(',')">{{
-                      column.value.join(",")
-                    }}</span>
-                    <span
-                      v-if="column.ignoredValue.length"
-                      class="filterInValid"
-                      >{{ "," + column.value.join(",") }}</span
-                    >
-                  </span>
-                  <span v-if="column.value.length" class="tag-count">{{
-                    column.value.length
-                  }}</span>
-                </div>
-              </template>
-              <template #footer>
-                <el-radio-group
-                  v-model="column.isInclude"
-                  @change="handleChange(column)"
-                  size="default"
-                  class="radio-group"
-                  border-color="none"
-                  text-color="#ffffff"
-                  fill="#69707d"
-                >
-                  <el-radio-button :label="t('Include')" :value="true" />
-                  <el-radio-button :label="t('Exclude')" :value="false" />
-                </el-radio-group>
-              </template>
-            </el-select>
-          </el-col>
-        </el-row>
-      </div>
-      <div class="center-content">
-        <el-row class="table-content" :gutter="10">
-          <el-col :span="24">
-            <div style="text-align: right">
-              <DropdownMenuList
-                placement="bottom"
-                popper-class="header-btn-dropdown"
-                trigger="click"
-                :list="columns"
-                :icon="dropdownIcon"
-                :maxHeight="380"
-                @handleChangeColumns="handleChangeColumns"
-              />
-            </div>
-              <el-table
+            <template #tag>
+              <div class="select-tag">
+                <span v-if="column.value.length" class="tag-status">{{column.isInclude?'':'NOT'}}</span>
+                <span class="tag-label">
+                  <span class="filterValid" :title="column.value.join(',')">{{column.value.join(',')}}</span>
+                  <span v-if="column.ignoredValue.length" class="filterInValid"><span v-show="column.value.length">,</span>{{column.ignoredValue.join(',')}}</span>
+                </span>
+                <span v-if="column.value.length" class="tag-count">{{column.value.length}}</span>
+              </div>
+            </template>
+            <template #footer>
+              <el-radio-group v-model="column.isInclude" @change="handleChange(column)" size="default" class="radio-group" border-color="none" text-color="#ffffff" fill="#69707d">
+                <el-radio-button :label="t('Include')" :value="true" />
+                <el-radio-button :label="t('Exclude')" :value="false" />
+              </el-radio-group>
+            </template>
+          </el-select>
+        </el-col>
+      </el-row>
+    </div>
+    <div class="center-content">
+      <el-row class="table-content" :gutter="10">
+        <el-col :span="24">
+          <div style="text-align: right">
+            <DropdownMenuList
+              placement="bottom"
+              popper-class="header-btn-dropdown"
+              trigger="click"
+              :list="columns"
+              :icon="dropdownIcon"
+              :maxHeight="380"
+              @handleChangeColumns="handleChangeColumns"
+            />
+          </div>
+          <!-- <el-table
+            ref="mainTable"
+            v-loading="loading"
+            :data="filteredData"
+            :height="tableHeight"
+            stripe
+            :sort-by="sortBy"
+            :sort-orders="sortOrders"
+            size="small"
+            :header-cell-style="{ 'text-align': 'left', color: '#1a1c21' }"
+            cell-class-name="table-cell"
+            class="custom-table"
+            show-overflow-tooltip
+            v-el-table-infinite-scroll="loadMore"
+            :infinite-scroll-disabled="scrollAble"
+            :infinite-scroll-distance="200"
+            :infinite-scroll-immediate="false"
+          > -->
+          <el-table
                 ref="tableRef"
                 v-loading="loading"
-                :data="isRequestData ? tableData : filteredData"
+                :data="filteredData"
                 :height="tableHeight"
                 stripe
                 :sort-by="sortBy"
@@ -147,99 +141,93 @@
                 show-overflow-tooltip
                 @scroll="handleScroll"
               >
-                <template #empty>
-                  <div>{{ $t("table.notdata") }}</div>
-                </template>
-                <el-table-column width="50">
-                  <template #default="scope">
-                    <div
-                      @click="handleDrawerOpen(scope.row, scope.$index)"
-                      class="table-svg-box"
-                    >
-                      <!-- <el-button type="primary" @click="handleDrawerOpen(scope.row)">打开抽屉</el-button> -->
-                      <svg
-                        v-if="drawerState[scope.$index]"
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 16 16"
-                        class="euiIcon euiButtonIcon__icon css-1sl2y4w-euiIcon-s-inherit"
-                        role="img"
-                        aria-hidden="true"
-                      >
-                        <path
-                          d="m1.146 14.146 4-4a.5.5 0 0 1 .765.638l-.057.07-4 4a.5.5 0 0 1-.765-.638l.057-.07 4-4-4 4ZM6.5 8A1.5 1.5 0 0 1 8 9.5v3a.5.5 0 1 1-1 0v-3a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 1 0-1h3Zm2-5a.5.5 0 0 1 .5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 1 1 0 1h-3A1.5 1.5 0 0 1 8 6.5v-3a.5.5 0 0 1 .5-.5Zm1.651 2.146 4-4a.5.5 0 0 1 .765.638l-.057.07-4 4a.5.5 0 0 1-.765-.638l.057-.07 4-4-4 4Z"
-                          fill="#1268A7"
-                        ></path>
-                      </svg>
-                      <svg
-                        v-else
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 16 16"
-                        class="euiIcon euiButtonIcon__icon css-1sl2y4w-euiIcon-s-inherit"
-                        role="img"
-                        aria-hidden="true"
-                      >
-                        <path
-                          fill-rule="evenodd"
-                          d="m4.354 12.354 8-8a.5.5 0 0 0-.708-.708l-8 8a.5.5 0 0 0 .708.708ZM1 10.5a.5.5 0 1 1 1 0v3a.5.5 0 0 0 .5.5h3a.5.5 0 1 1 0 1h-3A1.5 1.5 0 0 1 1 13.5v-3Zm14-5a.5.5 0 1 1-1 0v-3a.5.5 0 0 0-.5-.5h-3a.5.5 0 1 1 0-1h3A1.5 1.5 0 0 1 15 2.5v3Z"
-                          fill="#1268A7"
-                        ></path>
-                      </svg>
-                    </div>
-                  </template>
-                </el-table-column>
-
-                <el-table-column
-                  v-for="(column, index) in columns.filter((c) => c.isShow)"
-                  :key="`col-${column.name}-${index}`"
-                  :prop="column.name"
-                  :label="column.name"
-                  width="120"
+            <template #empty>
+              <div>{{ $t("table.notdata") }}</div>
+            </template>
+            <el-table-column width="50">
+              <template #default="scope">
+                <div
+                  @click="handleDrawerOpen(scope.row, scope.$index)"
+                  class="table-svg-box"
                 >
-                  <template #header>
-                    <div class="header-container">
-                      <span class="column-text">
-                        {{ t("col." + column.name) }}
-                      </span>
-                      <el-popover
-                        :ref="`col-${column.name}-${index}`"
-                        :visible="activePopover === column.name"
-                        trigger="click"
-                        :width="150"
-                        @hide="handlePopoverHide"
-                        placement="bottom-start"
-                        :teleported="true"
-                        :hide-after="500"
-                        v-if="dialogVisible"
-                        @before-leave="handlePopoverBeforeLeave"
-                      >
-                        <template #reference>
-                          <div
-                            class="more-btn"
-                            @click="handlePopoverShow(column.name)"
-                            :data-popover-anchor="column.name"
-                          >
-                            <el-icon>
-                              <More />
-                            </el-icon>
-                          </div>
-                        </template>
-                        <div @mouseleave="handlePopoverHide">
-                          <OperationDetail
-                            :column="column.name"
-                            @handleOperation="handleOperation"
-                          ></OperationDetail>
-                        </div>
-                      </el-popover>
+                  <!-- <el-button type="primary" @click="handleDrawerOpen(scope.row)">打开抽屉</el-button> -->
+                  <svg
+                    v-if="drawerState[scope.$index]"
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 16 16"
+                    class="euiIcon euiButtonIcon__icon css-1sl2y4w-euiIcon-s-inherit"
+                    role="img"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="m1.146 14.146 4-4a.5.5 0 0 1 .765.638l-.057.07-4 4a.5.5 0 0 1-.765-.638l.057-.07 4-4-4 4ZM6.5 8A1.5 1.5 0 0 1 8 9.5v3a.5.5 0 1 1-1 0v-3a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 1 0-1h3Zm2-5a.5.5 0 0 1 .5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 1 1 0 1h-3A1.5 1.5 0 0 1 8 6.5v-3a.5.5 0 0 1 .5-.5Zm1.651 2.146 4-4a.5.5 0 0 1 .765.638l-.057.07-4 4a.5.5 0 0 1-.765-.638l.057-.07 4-4-4 4Z"
+                      fill="#1268A7"
+                    ></path>
+                  </svg>
+                  <svg
+                    v-else
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 16 16"
+                    class="euiIcon euiButtonIcon__icon css-1sl2y4w-euiIcon-s-inherit"
+                    role="img"
+                    aria-hidden="true"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      d="m4.354 12.354 8-8a.5.5 0 0 0-.708-.708l-8 8a.5.5 0 0 0 .708.708ZM1 10.5a.5.5 0 1 1 1 0v3a.5.5 0 0 0 .5.5h3a.5.5 0 1 1 0 1h-3A1.5 1.5 0 0 1 1 13.5v-3Zm14-5a.5.5 0 1 1-1 0v-3a.5.5 0 0 0-.5-.5h-3a.5.5 0 1 1 0-1h3A1.5 1.5 0 0 1 15 2.5v3Z"
+                      fill="#1268A7"
+                    ></path>
+                  </svg>
+                </div>
+              </template>
+            </el-table-column>
+
+            <el-table-column
+              v-for="(column,index) in columns.filter((c) => c.isShow)"
+              :key="`col-${column.name}`"
+              :prop="column.name"
+              :label="column.name"
+              width="120"
+            >
+            <template #header>
+              <div class="header-container" >
+                  <span class="column-text"> {{ t("col." + column.name) }} </span>
+                  <el-popover
+                    :ref="`col-${column.name}`"
+                    :visible="activePopover === column.name"
+                    trigger="click"
+                    :width="150"
+                    @hide="handlePopoverHide"
+                    placement="bottom-start"
+                    :teleported="true"
+                    :hide-after="500"
+                    v-if="dialogVisible"
+                    @before-leave="handlePopoverBeforeLeave"
+                  >
+                    <template #reference>
+                      <div class="more-btn" @click="handlePopoverShow(column.name)" :data-popover-anchor="column.name">
+                        <el-icon>
+                          <More />
+                        </el-icon>
+                      </div>
+                    </template>
+                    <div  @mouseleave="handlePopoverHide">
+                      <OperationDetail
+                        :column="column.name"
+                        @handleOperation="handleOperation"
+                      ></OperationDetail>
                     </div>
-                  </template>
-                </el-table-column>
-              </el-table>
-            <div class="pagination-block">
-              <!-- <el-pagination
+                  </el-popover>
+                </div>
+              </template>
+            </el-table-column>
+          </el-table>
+          <div v-if="filteredData.length" class="pagination-block">
+            <!-- <el-pagination
               v-model:current-page="page.currentPage"
               v-model:page-size="page.pageSize"
               :page-sizes="[10, 25, 50,100]"
@@ -294,24 +282,25 @@ import {
   DescSortIcon,
 } from "../../utils/icons";
 import { debounce } from "@/utils/utils";
+const dropdownIcon = ref(require("@/assets/add-remove-columns.png"));
 
 const isRequestData = ref(false); //true 请求云上数据  false 本地数据
-
-const dropdownIcon = ref(require("@/assets/add-remove-columns.png"));
 const sortBy = ref(null);
 const sortOrders = ref(null);
 const activePopover = ref("");
 const dialogVisible = ref(true);
 //列信息
 const columns = ref([]);
-const searchInput = ref(""); //当前搜索下拉框数据条件
-const searchFormData = ref([]); //搜索框表单数据
-const selectOptions = ref([]); //下拉框数据
-const ignoredOptions = ref([]); //下拉框数据
-const currentSelect = ref({}); //当前筛选字段
-const showSelcetOptions = ref(true); //选定选中选项
-const colOptions = ref([]); //当前下拉框的数据
-const searchParam = ref([]);
+const searchInfo = reactive({
+  searchInput:"", //当前搜索下拉框数据条件
+  searchFormData:[], //搜索框表单数据
+  selectOptions:[], //下拉框数据
+  ignoredOptions:[], //下拉框忽略数据
+  currentSelect:[], //当前筛选字段
+  showSelcetOptions:[], //选中的选项显示/隐藏
+  colOptions:[], //当前下拉框的数据
+  searchParam:[]
+})
 // 表格数据
 const loading = ref(false);
 const tableData = ref([]);
@@ -355,28 +344,28 @@ const buttons = reactive([
     type: "",
     btnText: "",
     icon: true,
-    get svg() {
-      return showSelcetOptions.value ? ShowIcon : HideIcon;
+    get svg(){
+      return searchInfo.showSelcetOptions ? ShowIcon:HideIcon
     },
     link: true,
     className: "btn-icon",
-    get iconClass() {
-      return showSelcetOptions.value ? "btn-show" : "btn-hide";
+    get iconClass(){
+      return searchInfo.showSelcetOptions ? 'btn-show':'btn-hide'
     },
     tooltipsPlacement: "top",
     get tooltipsText() {
-      return showSelcetOptions.value ? "btn.showTips" : "btn.hideTips";
+      return searchInfo.showSelcetOptions ? 'btn.showTips':'btn.hideTips'
     },
     eventFn: function () {
-      const allOptions = selectOptions.value[currentSelect.value.prop];
-      const selectOption = currentSelect.value.value;
-      if (showSelcetOptions.value) {
-        const arr = allOptions.filter((v) => selectOption.includes(v.value));
-        colOptions.value = arr;
-        showSelcetOptions.value = false;
-      } else {
-        showSelcetOptions.value = true;
-        colOptions.value = allOptions;
+      const allOptions = searchInfo.selectOptions[searchInfo.currentSelect.prop];
+      const selectOption = searchInfo.currentSelect.value;
+      if(searchInfo.showSelcetOptions){
+        const arr = allOptions.filter((v)=>selectOption.includes(v.value));
+        searchInfo.colOptions = arr;
+        searchInfo.showSelcetOptions = false;
+      }else{
+        searchInfo.showSelcetOptions = true;
+        searchInfo.colOptions = allOptions;
       }
     },
   },
@@ -384,30 +373,24 @@ const buttons = reactive([
     type: "",
     btnText: "",
     icon: true,
-    get svg() {
-      return currentSelect.value.sortType === "asc"
-        ? AscSortIcon
-        : DescSortIcon;
+    get svg(){
+      return searchInfo.currentSelect.sortType === 'asc' ? AscSortIcon:DescSortIcon
     },
     link: true,
     className: "btn-icon",
-    get iconClass() {
-      return showSelcetOptions.value ? "btn-sort" : "btn-sort disable";
+    get iconClass(){
+      return searchInfo.showSelcetOptions ? 'btn-sort':'btn-sort disable'
     },
     tooltipsPlacement: "top",
     get tooltipsText() {
-      return showSelcetOptions.value && colOptions.value.length > 0
-        ? currentSelect.value.sortType === "asc"
-          ? "btn.sortAsc"
-          : "btn.sortDesc"
-        : "btn.noDataSort";
+      return (searchInfo.showSelcetOptions && searchInfo.colOptions.length > 0) ?(searchInfo.currentSelect.sortType === 'asc' ?'btn.sortAsc':'btn.sortDesc'):'btn.noDataSort'
     },
-    get disabled() {
-      return showSelcetOptions.value ? false : true;
+    get disabled(){
+      return searchInfo.showSelcetOptions ? false : true
     },
     eventFn: function () {
-      const sort = currentSelect.value.sortType === "asc" ? "desc" : "asc";
-      currentSelect.value.sortType = sort;
+      const sort = searchInfo.currentSelect.sortType === 'asc' ? 'desc':'asc';
+      searchInfo.currentSelect.sortType = sort;
     },
   },
 ]);
@@ -453,46 +436,45 @@ const handleResize = () => {
   calculateTableHeight();
 };
 
-const loadMore = debounce(() => {
-  console.log("loadMore");
-  if (scrollAble.value === true) {
+const loadMore =  debounce( ()=>{
+  if(scrollAble.value === true){
     return;
   }
   let params = {
-    size: 100,
-    filterReq: {
-      query: searchParam.value || [],
-    },
-    lastEvaluatedKey: lastEvaluatedkey,
-  };
-  loading.value = true;
-  getCustomers(params)
-    .then((result) => {
-      loading.value = false;
-      const items = result.data.items;
-      if (items.length < page.pageSize * 4) {
-        scrollAble.value = true;
-      } else {
-        scrollAble.value = false;
-      }
-      lastEvaluatedkey = result.data.lastEvaluatedKey;
-      tableData.value = [...tableData.value, ...items];
-      page.total = tableData.value.length;
-      items.map((v) => {
-        const keys = Object.keys(v);
-        keys.map((col) => {
-          if (!columns.value.some((item) => item.name === col)) {
-            columns.value.push({ name: col, isShow: true });
-          }
+      size: 100,
+      filterReq: {
+        query: searchInfo.searchParam || [],
+      },
+      lastEvaluatedKey: lastEvaluatedkey,
+    };
+    loading.value = true;
+    getCustomers(params)
+      .then((result) => {
+        loading.value = false;
+        const items = result.data.items;
+        if(items.length <page.pageSize*4){
+          scrollAble.value = true;
+        }else{
+          scrollAble.value = false;
+        }
+        lastEvaluatedkey = result.data.lastEvaluatedKey;
+        tableData.value = [...tableData.value,...items];
+        page.total = tableData.value.length;
+        items.map((v) => {
+          const keys = Object.keys(v);
+          keys.map((col) =>{
+            if(!columns.value.some((item) => item.name === col) ){
+              columns.value.push({name:col,isShow:true})
+            }
+          })
         });
+        // updateSearchFormData();
+      })
+      .catch((err) => {
+        loading.value = false;
+        console.error(err?.msg);
       });
-      // updateSearchFormData();
-    })
-    .catch((err) => {
-      loading.value = false;
-      console.error(err?.msg);
-    });
-}, 500);
+},500)
 
 const handlePopoverBeforeLeave = () => {
   dialogVisible.value = false;
@@ -509,55 +491,7 @@ const calculateTableHeight = () => {
   const padding = 146; // 上下边距总和
   const height = windowHeight - topActionHeight - topHeight - padding;
   tableHeight.value = height > 200 ? height : tableHeight.value;
-};
-
-// const handleNextPage = async () => {
-//   page.currentPage = page.currentPage + 1;
-//   if (Math.floor(tableData.value.length / page.pageSize) < page.currentPage) {
-//     let params = {
-//       size: page.pageSize*4,
-//       filterReq: {
-//         query: searchInput.value || [],
-//       },
-//       lastEvaluatedKey: lastEvaluatedkey,
-//     };
-//     loading.value = true;
-//     await getCustomers(params)
-//       .then((result) => {
-//         loading.value = false;
-//         const items = result.data.items;
-//         lastEvaluatedkey = result.data.lastEvaluatedKey;
-//         tableData.value = [...tableData.value,...items];
-//         page.total = tableData.value.length;
-//         updatePageData()
-//         items.map((v) => {
-//           const keys = Object.keys(v);
-//           columns.value = [...new Set([...columns.value, ...keys])];
-//         });
-//         if(searchFormData.value.length === 0){
-//           const optionArr = getSelectOptions();
-//           selectOptions.value = optionArr;
-//           defaultSearchColumns.map((v)=>{
-//             searchFormData.value.push({
-//               label:v,
-//               prop:v,
-//               isInclude:true,
-//               value:[],
-//               searchInput:"",
-//               sortType:'asc',
-//               filterType:'Any'
-//             })
-//           });
-//         }
-//       })
-//       .catch((err) => {
-//         loading.value = false;
-//         console.error(err?.msg);
-//       });
-//   } else {
-//   updatePageData()
-//   }
-// };
+}
 
 const handlePopoverHide = () => {
   activePopover.value = "";
@@ -571,10 +505,11 @@ const loadData = async () => {
   let params = {
     size: page.pageSize * 4,
     filterReq: {
-      query: searchParam.value || [],
+      query: searchInfo.searchParam || [],
     },
   };
   loading.value = true;
+  columns.value = [];
   await getCustomers(params)
     .then((result) => {
       loading.value = false;
@@ -585,19 +520,17 @@ const loadData = async () => {
         scrollAble.value = false;
       }
       lastEvaluatedkey = result.data.lastEvaluatedKey;
-      tableData.value = [...tableData.value, ...items];
+      tableData.value = items;
       page.total = tableData.value.length;
-      updatePageData();
+      updatePageData()
+      let columnsValue = [];
       items.map((v) => {
         const keys = Object.keys(v);
-        columns.value = [...new Set([...columns.value, ...keys])];
-        // keys.foreach(col =>{
-        //   columns.value.push({name:col,isShow:true})
-        // })
+        columnsValue = [...new Set([...columnsValue,...keys])];
       });
-      columns.value = columns.value.map((col) => {
-        return { name: col, isShow: true };
-      });
+     columns.value =  columnsValue.map((col) =>{
+        return {name:col,isShow:true}
+      })
       updateSearchFormData();
     })
     .catch((err) => {
@@ -606,32 +539,35 @@ const loadData = async () => {
     });
 };
 
-const handleFullData = () => {
-  // console.log('isRequestData',isRequestData.value);
-  searchFormData.value = [];
-  nextTick(() => {
-    updateSearchFormData();
-  });
-};
+const handleFullData = () =>{
+  searchInfo.searchFormData = [];
+  searchInfo.searchParam = [];
+  page.total = 0;
+  nextTick(()=>{
+    loadData();
+  })
+}
 
-const updateSearchFormData = () => {
-  if (searchFormData.value.length === 0) {
-    // const optionArr = getSelectOptions();
-    // selectOptions.value = optionArr.options;
-    // ignoredOptions.value = [];
-    defaultSearchColumns.map((v) => {
-      searchFormData.value.push({
-        label: v,
-        prop: v,
-        isInclude: true,
-        value: [],
-        ignoredValue: [],
-        searchInput: "",
-        sortType: "asc",
-        filterType: "Any",
-        // options:optionArr[v],
+// update search form
+const updateSearchFormData = () =>{
+  
+  if(searchInfo.searchFormData.length === 0){
+      // const optionArr = getSelectOptions();
+      // selectOptions.value = optionArr.options;
+      // ignoredOptions.value = [];
+      defaultSearchColumns.map((v)=>{
+          searchInfo.searchFormData.push({
+            label:v,
+            prop:v,
+            isInclude:true,
+            value:[],
+            ignoredValue:[],
+            searchInput:"",
+            sortType:'asc',
+            filterType:'Any'
+            // options:optionArr[v],
+          })
       });
-    });
   }
   // else if(!isRequestData.value){
   // const optionArr = getSelectOptions();
@@ -640,9 +576,70 @@ const updateSearchFormData = () => {
   // console.log('111111111',optionArr)
   // }
   const optionArr = getSelectOptions();
-  selectOptions.value = optionArr.options;
-  ignoredOptions.value = optionArr.ignoredOptions || [];
-  console.log("111111111", optionArr);
+  searchInfo.selectOptions = optionArr.options;
+  searchInfo.ignoredOptions = optionArr.ignoredOptions || [];
+}
+
+//获取下拉框数据
+const getSelectOptions = () => {
+  const options = {};
+  const ignoredOptions = {};
+  const data = isRequestData.value ? tableData.value : filteredData.value;
+  searchInfo.searchFormData.forEach((column) => {
+    
+    const uniqueValues = [
+      ...new Set(data.filter(item => item[column.label] != null && item[column.label] !== '').map((item) => item[column.label])),
+    ];
+    // const selectedOptions = searchInfo.searchFormData.find((v)=>v.label === column.name); //已选项
+    if(column.ignoredValue?.length > 0){
+      
+      // 将 array2 转换为 Set
+      const values = new Set(uniqueValues);
+      // 筛选出包含的元素
+      // const included = selectedOptions.ignoredValue.filter(item => values.has(item));
+      // 筛选出不包含的元素
+      const excluded = column.ignoredValue.filter(item => !values.has(item));
+      // selectedOptions.value = selectedOptions.ignoredValue;
+      column.ignoredValue = excluded;
+ 
+      ignoredOptions[column.label] = excluded?.map((option) => {
+        return {
+          label:column.label,
+          value:option,
+          // disabled:true
+        }
+      }) || [];
+    }
+  
+    const defaultOptions = searchInfo.selectOptions[column.label];
+    if(defaultOptions?.length > 0){
+      if(column.label==='modelName1'){
+        options[column.label] = defaultOptions;
+      }else if(column.label==='clientCode' && searchInfo.currentSelect.label !== 'modelName1'){
+        options[column.label] = defaultOptions;
+      }else{
+        options[column.label] = uniqueValues.map((value) => ({
+          label: column.label,
+          value: value,
+        }));
+      }
+    }else{
+      options[column.label] = uniqueValues.map((value) => ({
+        label: column.label,
+        value: value,
+      }));
+    }
+   
+    // else if((column==='modelName1' || column==='clientCode') && currentSelect.value.label === 'clientCode'){
+    //   options[column] = selectOptions.value[column];
+    // }else{
+      
+    // }
+  });
+  return {
+    options,
+    ignoredOptions
+  };
 };
 
 const handleOperation = async ({ column, operation }) => {
@@ -679,7 +676,7 @@ const handleOperation = async ({ column, operation }) => {
       break;
     case "copyColumn": {
       let copArr = [];
-      selectOptions.value[column].forEach((item) => {
+      searchInfo.selectOptions[column].forEach((item) => {
         copArr.push(item.value);
       });
       try {
@@ -726,37 +723,6 @@ const swapElements = (arr, index) => {
 //   showIconInfo.value = true;
 // };
 
-//获取下拉框数据
-const getSelectOptions = () => {
-  const options = {};
-  const ignoredOptions = {};
-  columns.value.forEach((column) => {
-    const data = isRequestData.value ? tableData.value : filteredData.value;
-    const hasModelName =
-      column.name === "modelName1" && selectOptions.value[columns];
-    const uniqueValues = [
-      ...new Set(
-        data
-          .filter(
-            (item) =>
-              !hasModelName &&
-              item[column.name] != null &&
-              item[column.name] !== ""
-          )
-          .map((item) => item[column.name])
-      ),
-    ];
-    options[column.name] = uniqueValues.map((value) => ({
-      label: column.name,
-      value: value,
-    }));
-  });
-  return {
-    options,
-    ignoredOptions,
-  };
-};
-
 const handleDrawerOpen = (rowData, index) => {
   drawerVisible.value = true;
   jsonData.value = rowData;
@@ -777,17 +743,21 @@ watch(columns, (newVal) => {
 });
 
 const handleSearch = (val) => {
-  searchInput.value = val || "";
+  searchInfo.searchInput = val || '';
 };
 
 // 过滤后的选项（计算属性）
 const filteredOptions = computed(() => {
-  const keyword = searchInput.value.toLowerCase();
-  const data = colOptions.value.filter((item) =>
+  const keyword = searchInfo.searchInput.toLowerCase();
+  const data = searchInfo.colOptions.filter(item =>
     item.value?.toLowerCase().includes(keyword)
   );
   // sort value
-  return sortArray(data, "value", currentSelect.value.sortType);
+  return sortArray(data, 'value', searchInfo.currentSelect.sortType);
+});
+
+const ignoredOptions = computed(() => {
+  return  searchInfo.ignoredOptions[searchInfo.currentSelect.label];
 });
 
 const optionGroup = ref([
@@ -796,8 +766,8 @@ const optionGroup = ref([
     options: filteredOptions,
   },
   {
-    label: "Ignored selection",
-    options: [],
+    label: 'Ignored selection',
+    options: ignoredOptions,
   },
 ]);
 
@@ -816,65 +786,65 @@ const sortArray = (data, field, order = "asc") => {
 // 监听下拉框状态
 const handleSelectToggle = (column, visible) => {
   if (visible) {
-    searchInput.value = column.searchInput || "";
+    searchInfo.searchInput = column.searchInput || '';
     setCurrentSelect(column);
-    showSelcetOptions.value = true;
+    searchInfo.showSelcetOptions = true;
   }
 };
 
-const setCurrentSelect = (column) => {
-  currentSelect.value = column;
-  colOptions.value = selectOptions.value[column.prop];
-};
+const setCurrentSelect = (column) =>{
+  searchInfo.currentSelect = column;
+  searchInfo.colOptions = searchInfo.selectOptions[column.prop];
+}
 
 //下拉数据选中
 const handleChange = debounce(() => {
-  searchParam.value = [];
+  searchInfo.searchParam = [];
   scrollAble.value = false;
-  searchFormData.value.map((columns) => {
+  searchInfo.searchFormData.map((columnItem)=>{
     //切换模型，清空其他数据
-    if (
-      currentSelect.value.label === "modelName1" &&
-      columns.label !== "modelName1"
-    ) {
-      columns.value = [];
-    }
-    // else if(currentSelect.value.label === 'clientCode' && (columns.label !== 'modelName1' || columns.label !== 'clientCode')){
-    //   columns.value = [];
+    // if(columns.label !== 'modelName1'){
+    //   const columnOptions = searchInfo.selectOptions[columns.prop].map(v=>{
+    //     return v.value
+    //   });
+    //   const excluded = columns.value.filter(v => !columnOptions.includes(v));
+    //   columns.ignoredValue = excluded;
+    //   console.log(columns.prop,'ignoredValue',excluded)
     // }
+    if(searchInfo.currentSelect.label === 'modelName1' && columnItem.label !== 'modelName1'){
+      columnItem.value = [];
+    }
+    // if(searchInfo.currentSelect.label === 'clientCode' && columnItem.label !== 'modelName1'){
+    //   columnItem.value = [];
+    // }
+
     let dataArr = [];
-    let item = columns.value;
-    if (typeof item === "string") {
+    let item = columnItem.value;
+    if(typeof(item) === 'string'){
       dataArr.push(item);
     } else {
       dataArr = item;
     }
-    if (dataArr?.length) {
-      // if(!columns.isInclude){
-      //   const columnOptions = selectOptions.value[columns.prop].map(v=>{
-      //     return v.value
-      //   });
-      //   dataArr = columnOptions.filter(v => !dataArr.includes(v));
-      // }
+    if(dataArr?.length){
       const params = {
         type: "logic",
         logic: "OR", //OR/AND
         negative: false,
         items: [],
       };
-      let operator = "=";
-      if (!columns.isInclude) {
+      let operator = '=';
+      if(!columnItem.isInclude){
         params.negative = true;
       }
       dataArr.map((v) => {
         const items = {
-          attribute: columns.prop,
-          operator: operator,
-          value: v,
-        };
+          attribute:columnItem.prop,
+          operator:operator,
+          value:v
+        }
         params.items.push(items);
-      });
-      searchParam.value.push(params);
+      })
+      searchInfo.searchParam.push(params);
     }
   });
   //搜索
@@ -893,25 +863,28 @@ const applyFilters = () => {
 const filteredData = computed(() => {
   if (isRequestData.value) {
     return tableData.value;
-  } else {
-    return tableData.value.filter((item) => {
-      return searchFormData.value.every((column) => {
+  }else{
+     return tableData.value.filter(item => {
+      return searchInfo.searchFormData.every((column)=>{
         let searchVal = [];
-        const defaultOptions = selectOptions.value[column.label];
-        if (!column.isInclude) {
-          searchVal = defaultOptions.some((v) => {
-            return v !== column.value;
+        const defaultOptions = searchInfo.selectOptions[column.label];
+        if(!column.isInclude){
+          defaultOptions.some((v)=> {
+            if(!column.value.includes(v.value)){
+              searchVal.push(v.value)
+            }
           });
-        } else {
+        }else{
           searchVal = column.value;
         }
-        if (searchVal.length === 0) return true;
-        return searchVal.some((val) => {
-          return item[column.prop]
-            .toString()
-            .toLowerCase()
-            .includes(val.toString().toLowerCase());
-        });
+        if(searchVal.length === 0){
+          return true;
+        }else{
+        return searchVal.some((val)=>{
+          return item[column.prop].toString().toLowerCase().includes(val.toString().toLowerCase());
+        })
+        }
+        
       });
     });
   }
