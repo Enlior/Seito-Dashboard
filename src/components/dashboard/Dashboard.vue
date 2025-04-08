@@ -10,8 +10,8 @@
         <el-col
           class="form-item"
           :span="columnWidth"
-          v-for="column in searchFormData"
-          :key="column"
+          v-for="column in searchInfo.searchFormData"
+          :key="column.label"
         >
           <span class="form-label">{{ t(column.label) }}</span>
           <el-select
@@ -61,6 +61,8 @@
                 v-for="item in group.options"
                 :key="item.value"
                 :value="item.value"
+                :disabled="item.disabled"
+                :class="item.disabled ? 'filterInValid' : ''"
               >
                 <span class="option-text">{{ item.value }}</span>
               </el-option>
@@ -77,7 +79,7 @@
                 <span v-if="column.value.length" class="tag-status">{{column.isInclude?'':'NOT'}}</span>
                 <span class="tag-label">
                   <span class="filterValid" :title="column.value.join(',')">{{column.value.join(',')}}</span>
-                  <span v-if="column.ignoredValue.length" class="filterInValid">{{','+column.value.join(',')}}</span>
+                  <span v-if="column.ignoredValue.length" class="filterInValid"><span v-show="column.value.length">,</span>{{column.ignoredValue.join(',')}}</span>
                 </span>
                 <span v-if="column.value.length" class="tag-count">{{column.value.length}}</span>
               </div>
@@ -124,23 +126,6 @@
             :infinite-scroll-distance="200"
             :infinite-scroll-immediate="false"
           >
-          <!-- <el-table
-            ref="mainTable"
-            v-loading="loading"
-            :data="isRequestData ? tableData : filteredData"
-            :height="tableHeight"
-            stripe
-            :sort-by="sortBy"
-            :sort-orders="sortOrders"
-            size="small"
-            :header-cell-style="{ 'text-align': 'left', color: '#1a1c21' }"
-            cell-class-name="table-cell"
-            class="custom-table"
-            show-overflow-tooltip
-            @scroll="handleScroll"
-           
-           
-          > -->
             <template #empty>
               <div>{{ $t("table.notdata") }}</div>
             </template>
@@ -188,7 +173,7 @@
 
             <el-table-column
               v-for="(column,index) in columns.filter((c) => c.isShow)"
-              :key="`col-${column.name}-${index}`"
+              :key="`col-${column.name}`"
               :prop="column.name"
               :label="column.name"
               width="120"
@@ -197,7 +182,7 @@
               <div class="header-container" >
                   <span class="column-text"> {{ t("col." + column.name) }} </span>
                   <el-popover
-                    :ref="`col-${column.name}-${index}`"
+                    :ref="`col-${column.name}`"
                     :visible="activePopover === column.name"
                     trigger="click"
                     :width="150"
@@ -226,7 +211,7 @@
               </template>
             </el-table-column>
           </el-table>
-          <div class="pagination-block">
+          <div v-if="filteredData.length" class="pagination-block">
             <!-- <el-pagination
               v-model:current-page="page.currentPage"
               v-model:page-size="page.pageSize"
@@ -276,25 +261,25 @@ import Buttons from "@/components/button/Buttons.vue";
 import { ShowIcon,HideIcon,AscSortIcon, DescSortIcon} from "../../utils/icons";
 import { default as vElTableInfiniteScroll } from "el-table-infinite-scroll";
 import { debounce } from "@/utils/utils";
-
+const dropdownIcon = ref(require("@/assets/add-remove-columns.png"));
 
 const isRequestData = ref(false); //true 请求云上数据  false 本地数据
-
-const dropdownIcon = ref(require("@/assets/add-remove-columns.png"));
 const sortBy = ref(null);
 const sortOrders = ref(null);
 const activePopover = ref('')
 const dialogVisible=ref(true)
 //列信息
 const columns = ref([]);
-const searchInput = ref(""); //当前搜索下拉框数据条件
-const searchFormData = ref([]); //搜索框表单数据
-const selectOptions = ref([]); //下拉框数据
-const ignoredOptions = ref([]); //下拉框数据
-const currentSelect = ref({}); //当前筛选字段
-const showSelcetOptions = ref(true); //选定选中选项
-const colOptions = ref([]); //当前下拉框的数据
-const searchParam = ref([]);
+const searchInfo = reactive({
+  searchInput:"", //当前搜索下拉框数据条件
+  searchFormData:[], //搜索框表单数据
+  selectOptions:[], //下拉框数据
+  ignoredOptions:[], //下拉框忽略数据
+  currentSelect:[], //当前筛选字段
+  showSelcetOptions:[], //选中的选项显示/隐藏
+  colOptions:[], //当前下拉框的数据
+  searchParam:[]
+})
 // 表格数据
 const loading = ref(false);
 const tableData = ref([]);
@@ -335,27 +320,27 @@ const buttons = reactive([
     btnText: "",
     icon: true,
     get svg(){
-      return showSelcetOptions.value ? ShowIcon:HideIcon
+      return searchInfo.showSelcetOptions ? ShowIcon:HideIcon
     },
     link:true,
     className: "btn-icon",
     get iconClass(){
-      return showSelcetOptions.value ? 'btn-show':'btn-hide'
+      return searchInfo.showSelcetOptions ? 'btn-show':'btn-hide'
     },
     tooltipsPlacement:'top',
     get tooltipsText() {
-      return showSelcetOptions.value ? 'btn.showTips':'btn.hideTips'
+      return searchInfo.showSelcetOptions ? 'btn.showTips':'btn.hideTips'
     },
     eventFn: function () {
-      const allOptions = selectOptions.value[currentSelect.value.prop];
-      const selectOption = currentSelect.value.value;
-      if(showSelcetOptions.value){
+      const allOptions = searchInfo.selectOptions[searchInfo.currentSelect.prop];
+      const selectOption = searchInfo.currentSelect.value;
+      if(searchInfo.showSelcetOptions){
         const arr = allOptions.filter((v)=>selectOption.includes(v.value));
-        colOptions.value = arr;
-        showSelcetOptions.value = false;
+        searchInfo.colOptions = arr;
+        searchInfo.showSelcetOptions = false;
       }else{
-        showSelcetOptions.value = true;
-        colOptions.value = allOptions;
+        searchInfo.showSelcetOptions = true;
+        searchInfo.colOptions = allOptions;
       }
     },
   },
@@ -364,23 +349,23 @@ const buttons = reactive([
     btnText: "",
     icon: true,
     get svg(){
-      return currentSelect.value.sortType === 'asc' ? AscSortIcon:DescSortIcon
+      return searchInfo.currentSelect.sortType === 'asc' ? AscSortIcon:DescSortIcon
     },
     link:true,
     className: "btn-icon",
     get iconClass(){
-      return showSelcetOptions.value ? 'btn-sort':'btn-sort disable'
+      return searchInfo.showSelcetOptions ? 'btn-sort':'btn-sort disable'
     },
     tooltipsPlacement:'top',
     get tooltipsText() {
-      return (showSelcetOptions.value && colOptions.value.length > 0) ?(currentSelect.value.sortType === 'asc' ?'btn.sortAsc':'btn.sortDesc'):'btn.noDataSort'
+      return (searchInfo.showSelcetOptions && searchInfo.colOptions.length > 0) ?(searchInfo.currentSelect.sortType === 'asc' ?'btn.sortAsc':'btn.sortDesc'):'btn.noDataSort'
     },
     get disabled(){
-      return showSelcetOptions.value ? false : true
+      return searchInfo.showSelcetOptions ? false : true
     },
     eventFn: function () {
-      const sort = currentSelect.value.sortType === 'asc' ? 'desc':'asc';
-      currentSelect.value.sortType = sort;
+      const sort = searchInfo.currentSelect.sortType === 'asc' ? 'desc':'asc';
+      searchInfo.currentSelect.sortType = sort;
     },
   },
 ]);
@@ -432,14 +417,13 @@ const handleResize = () => {
 
 
 const loadMore =  debounce( ()=>{
-  console.log('loadMore')
   if(scrollAble.value === true){
     return;
   }
   let params = {
       size: 100,
       filterReq: {
-        query: searchParam.value || [],
+        query: searchInfo.searchParam || [],
       },
       lastEvaluatedKey: lastEvaluatedkey,
     };
@@ -489,54 +473,6 @@ const calculateTableHeight = () => {
   tableHeight.value = height > 200 ? height : tableHeight.value;
 }
 
-// const handleNextPage = async () => {
-//   page.currentPage = page.currentPage + 1;
-//   if (Math.floor(tableData.value.length / page.pageSize) < page.currentPage) {
-//     let params = {
-//       size: page.pageSize*4,
-//       filterReq: {
-//         query: searchInput.value || [],
-//       },
-//       lastEvaluatedKey: lastEvaluatedkey,
-//     };
-//     loading.value = true;
-//     await getCustomers(params)
-//       .then((result) => {
-//         loading.value = false;
-//         const items = result.data.items;
-//         lastEvaluatedkey = result.data.lastEvaluatedKey;
-//         tableData.value = [...tableData.value,...items];
-//         page.total = tableData.value.length;
-//         updatePageData()
-//         items.map((v) => {
-//           const keys = Object.keys(v);
-//           columns.value = [...new Set([...columns.value, ...keys])];
-//         });
-//         if(searchFormData.value.length === 0){
-//           const optionArr = getSelectOptions();
-//           selectOptions.value = optionArr;
-//           defaultSearchColumns.map((v)=>{
-//             searchFormData.value.push({
-//               label:v,
-//               prop:v,
-//               isInclude:true,
-//               value:[],
-//               searchInput:"",
-//               sortType:'asc',
-//               filterType:'Any'
-//             })
-//           });
-//         }
-//       })
-//       .catch((err) => {
-//         loading.value = false;
-//         console.error(err?.msg);
-//       });
-//   } else {
-//   updatePageData()
-//   }
-// };
-
 const handlePopoverHide = () => {
         activePopover.value = '';
 };
@@ -550,10 +486,11 @@ const loadData = async () => {
   let params = {
     size: page.pageSize*4,
     filterReq: {
-      query: searchParam.value || [],
+      query: searchInfo.searchParam || [],
     },
   };
   loading.value = true;
+  columns.value = [];
   await getCustomers(params)
     .then((result) => {
       loading.value = false;
@@ -564,17 +501,15 @@ const loadData = async () => {
         scrollAble.value = false;
       }
       lastEvaluatedkey = result.data.lastEvaluatedKey;
-      tableData.value = [...tableData.value,...items];
+      tableData.value = items;
       page.total = tableData.value.length;
       updatePageData()
+      let columnsValue = [];
       items.map((v) => {
         const keys = Object.keys(v);
-        columns.value = [...new Set([...columns.value, ...keys])];
-        // keys.foreach(col =>{
-        //   columns.value.push({name:col,isShow:true})
-        // })
+        columnsValue = [...new Set([...columnsValue,...keys])];
       });
-     columns.value =  columns.value.map((col) =>{
+     columns.value =  columnsValue.map((col) =>{
         return {name:col,isShow:true}
       })
       updateSearchFormData();
@@ -586,21 +521,23 @@ const loadData = async () => {
 };
 
 const handleFullData = () =>{
-  // console.log('isRequestData',isRequestData.value);
-  searchFormData.value = [];
+  searchInfo.searchFormData = [];
+  searchInfo.searchParam = [];
+  page.total = 0;
   nextTick(()=>{
-    updateSearchFormData();
+    loadData();
   })
 }
 
+// update search form
 const updateSearchFormData = () =>{
   
-  if(searchFormData.value.length === 0){
+  if(searchInfo.searchFormData.length === 0){
       // const optionArr = getSelectOptions();
       // selectOptions.value = optionArr.options;
       // ignoredOptions.value = [];
       defaultSearchColumns.map((v)=>{
-          searchFormData.value.push({
+          searchInfo.searchFormData.push({
             label:v,
             prop:v,
             isInclude:true,
@@ -620,10 +557,71 @@ const updateSearchFormData = () =>{
     // console.log('111111111',optionArr)
   // }
   const optionArr = getSelectOptions();
-    selectOptions.value = optionArr.options;
-    ignoredOptions.value = optionArr.ignoredOptions || [];
-    console.log('111111111',optionArr)
+  searchInfo.selectOptions = optionArr.options;
+  searchInfo.ignoredOptions = optionArr.ignoredOptions || [];
 }
+
+//获取下拉框数据
+const getSelectOptions = () => {
+  const options = {};
+  const ignoredOptions = {};
+  const data = isRequestData.value ? tableData.value : filteredData.value;
+  searchInfo.searchFormData.forEach((column) => {
+    
+    const uniqueValues = [
+      ...new Set(data.filter(item => item[column.label] != null && item[column.label] !== '').map((item) => item[column.label])),
+    ];
+    // const selectedOptions = searchInfo.searchFormData.find((v)=>v.label === column.name); //已选项
+    if(column.ignoredValue?.length > 0){
+      
+      // 将 array2 转换为 Set
+      const values = new Set(uniqueValues);
+      // 筛选出包含的元素
+      // const included = selectedOptions.ignoredValue.filter(item => values.has(item));
+      // 筛选出不包含的元素
+      const excluded = column.ignoredValue.filter(item => !values.has(item));
+      // selectedOptions.value = selectedOptions.ignoredValue;
+      column.ignoredValue = excluded;
+ 
+      ignoredOptions[column.label] = excluded?.map((option) => {
+        return {
+          label:column.label,
+          value:option,
+          // disabled:true
+        }
+      }) || [];
+    }
+  
+    const defaultOptions = searchInfo.selectOptions[column.label];
+    if(defaultOptions?.length > 0){
+      if(column.label==='modelName1'){
+        options[column.label] = defaultOptions;
+      }else if(column.label==='clientCode' && searchInfo.currentSelect.label !== 'modelName1'){
+        options[column.label] = defaultOptions;
+      }else{
+        options[column.label] = uniqueValues.map((value) => ({
+          label: column.label,
+          value: value,
+        }));
+      }
+    }else{
+      options[column.label] = uniqueValues.map((value) => ({
+        label: column.label,
+        value: value,
+      }));
+    }
+   
+    // else if((column==='modelName1' || column==='clientCode') && currentSelect.value.label === 'clientCode'){
+    //   options[column] = selectOptions.value[column];
+    // }else{
+      
+    // }
+  });
+  return {
+    options,
+    ignoredOptions
+  };
+};
 
 const handleOperation = async ({ column, operation }) => {
   switch (operation) {
@@ -659,7 +657,7 @@ const handleOperation = async ({ column, operation }) => {
       break;
     case "copyColumn":{
       let copArr = [];
-      selectOptions.value[column].forEach((item) => {
+      searchInfo.selectOptions[column].forEach((item) => {
         copArr.push(item.value);
       });
       try {
@@ -706,27 +704,6 @@ const swapElements = (arr, index) => {
 //   showIconInfo.value = true;
 // };
 
-//获取下拉框数据
-const getSelectOptions = () => {
-  const options = {};
-  const ignoredOptions = {};
-  columns.value.forEach((column) => {
-    const data = isRequestData.value ? tableData.value : filteredData.value;
-    const hasModelName = column.name === 'modelName1' && selectOptions.value[columns];
-    const uniqueValues = [
-      ...new Set(data.filter(item => !hasModelName && item[column.name] != null && item[column.name] !== '').map((item) => item[column.name])),
-    ];
-    options[column.name] = uniqueValues.map((value) => ({
-      label: column.name,
-      value: value,
-    }));
-  });
-  return {
-    options,
-    ignoredOptions
-  };
-};
-
 const handleDrawerOpen = (rowData, index) => {
   drawerVisible.value = true;
   jsonData.value = rowData;
@@ -748,17 +725,21 @@ watch(columns, (newVal) => {
 
 
 const handleSearch = (val) => {
-  searchInput.value = val || '';
+  searchInfo.searchInput = val || '';
 };
 
 // 过滤后的选项（计算属性）
 const filteredOptions = computed(() => {
-  const keyword = searchInput.value.toLowerCase();
-  const data = colOptions.value.filter(item =>
+  const keyword = searchInfo.searchInput.toLowerCase();
+  const data = searchInfo.colOptions.filter(item =>
     item.value?.toLowerCase().includes(keyword)
   );
   // sort value
-  return sortArray(data, 'value', currentSelect.value.sortType);
+  return sortArray(data, 'value', searchInfo.currentSelect.sortType);
+});
+
+const ignoredOptions = computed(() => {
+  return  searchInfo.ignoredOptions[searchInfo.currentSelect.label];
 });
 
 const optionGroup = ref([
@@ -768,7 +749,7 @@ const optionGroup = ref([
   },
   {
     label: 'Ignored selection',
-    options: [],
+    options: ignoredOptions,
   },
 ]);
 
@@ -788,43 +769,46 @@ const sortArray = (data, field, order = 'asc') => {
 // 监听下拉框状态
 const handleSelectToggle = (column,visible) => {
   if (visible) {
-    searchInput.value = column.searchInput || '';
+    searchInfo.searchInput = column.searchInput || '';
     setCurrentSelect(column);
-    showSelcetOptions.value = true;
+    searchInfo.showSelcetOptions = true;
   }
 }
 
 const setCurrentSelect = (column) =>{
-  currentSelect.value = column;
-  colOptions.value = selectOptions.value[column.prop];
+  searchInfo.currentSelect = column;
+  searchInfo.colOptions = searchInfo.selectOptions[column.prop];
 }
 
 //下拉数据选中
 const handleChange = debounce(() => {
-  searchParam.value = [];
+  searchInfo.searchParam = [];
   scrollAble.value = false;
-  searchFormData.value.map((columns)=>{
+  searchInfo.searchFormData.map((columnItem)=>{
     //切换模型，清空其他数据
-    if(currentSelect.value.label === 'modelName1' && columns.label !== 'modelName1'){
-      columns.value = [];
-    }
-    // else if(currentSelect.value.label === 'clientCode' && (columns.label !== 'modelName1' || columns.label !== 'clientCode')){
-    //   columns.value = [];
+    // if(columns.label !== 'modelName1'){
+    //   const columnOptions = searchInfo.selectOptions[columns.prop].map(v=>{
+    //     return v.value
+    //   });
+    //   const excluded = columns.value.filter(v => !columnOptions.includes(v));
+    //   columns.ignoredValue = excluded;
+    //   console.log(columns.prop,'ignoredValue',excluded)
     // }
+    if(searchInfo.currentSelect.label === 'modelName1' && columnItem.label !== 'modelName1'){
+      columnItem.value = [];
+    }
+    // if(searchInfo.currentSelect.label === 'clientCode' && columnItem.label !== 'modelName1'){
+    //   columnItem.value = [];
+    // }
+
     let dataArr = [];
-    let item = columns.value;
+    let item = columnItem.value;
     if(typeof(item) === 'string'){
       dataArr.push(item);
     }else{
       dataArr = item;
     }
     if(dataArr?.length){
-      // if(!columns.isInclude){
-      //   const columnOptions = selectOptions.value[columns.prop].map(v=>{
-      //     return v.value
-      //   });
-      //   dataArr = columnOptions.filter(v => !dataArr.includes(v));
-      // }
       const params = {
         type:'logic',
         logic:'OR', //OR/AND
@@ -832,18 +816,18 @@ const handleChange = debounce(() => {
         items:[]
       };
       let operator = '=';
-      if(!columns.isInclude){
+      if(!columnItem.isInclude){
         params.negative = true;
       }
       dataArr.map((v)=>{
         const items = {
-          attribute:columns.prop,
+          attribute:columnItem.prop,
           operator:operator,
           value:v
         }
         params.items.push(items);
       })
-      searchParam.value.push(params);
+      searchInfo.searchParam.push(params);
     }
   })
   //搜索
@@ -864,20 +848,26 @@ const filteredData = computed(() => {
     return tableData.value;
   }else{
      return tableData.value.filter(item => {
-      return searchFormData.value.every((column)=>{
+      return searchInfo.searchFormData.every((column)=>{
         let searchVal = [];
-        const defaultOptions = selectOptions.value[column.label];
+        const defaultOptions = searchInfo.selectOptions[column.label];
         if(!column.isInclude){
-            searchVal = defaultOptions.some((v)=> {
-              return v !== column.value
-            });
+          defaultOptions.some((v)=> {
+            if(!column.value.includes(v.value)){
+              searchVal.push(v.value)
+            }
+          });
         }else{
           searchVal = column.value;
         }
-        if(searchVal.length === 0) return true;
+        if(searchVal.length === 0){
+          return true;
+        }else{
         return searchVal.some((val)=>{
           return item[column.prop].toString().toLowerCase().includes(val.toString().toLowerCase());
         })
+        }
+        
       });
     });
   }
