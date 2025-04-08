@@ -122,7 +122,7 @@
             v-el-table-infinite-scroll="loadMore"
             :infinite-scroll-disabled="scrollAble"
             :infinite-scroll-distance="200"
-           
+            :infinite-scroll-immediate="false"
           >
           <!-- <el-table
             ref="mainTable"

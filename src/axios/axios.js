@@ -2,7 +2,7 @@ import axios from "axios";
 // import router from "../router";
 
 //创建一个axios实例
-const API_BASE = process.env.NODE_ENV === "development" ? "/":process.env.API_BASE_URL;
+const API_BASE = process.env.NODE_ENV === "development" ? "/":process.env.VUE_APP_API_BASE_URL;
 const instance = axios.create({
   // baseURL:import.meta.env.API_URL||window.location.origin + '/api',
   baseURL:API_BASE,
