@@ -9,12 +9,13 @@
       <el-row class="search-form" :gutter="10">
         <el-col
           class="form-item"
-          :span="columnWidth"
           v-for="column in searchInfo.searchFormData"
           :key="column.label"
+          :span="column.span"
         >
           <span class="form-label">{{ t(column.label) }}</span>
           <el-select
+            v-if="column.filedType==='select'"
             class="form-select"
             v-model="column.value"
             value-key="value"
@@ -24,14 +25,15 @@
             size="large"
             :offset="0"
             :show-arrow="false"
-            :placeholder="column.filterType"
+            :placeholder="column.ignoredValue.length > 0 ? '':column.filterType"
             :fit-input-width="true"
             @change="handleChange(column)"
             @clear="setCurrentSelect(column)"
             @visible-change="handleSelectToggle(column, $event)"
           >
             <template #empty>
-              <div>{{ $t("noSelect") }}</div>
+              <div v-if="column.value.length === 0 && column.ignoredValue.length === 0">{{ $t("noSelect") }}</div>
+              <div v-else></div>
             </template>
             <!-- :multiple-limit="1" -->
             <!-- @focus="handleFocus(columns[index])" -->
@@ -47,13 +49,15 @@
                 @keyup.enter="handleEnter(column.searchInput)"
               />
               <div class="select-header-options">
-                <span class="option-count">{{filteredOptions.length}} {{t('option')}}</span>
+                <span class="option-count">{{ filteredOptions.length}} {{t('option')}}</span>
+                <span v-if="column.ignoredValue.length" class="option-line"></span>
+                <span v-if="column.ignoredValue.length" class="option-count">{{ column.ignoredValue.length}} {{t('selectionIgnored')}}</span>
                 <span class="option-btn">
                   <Buttons :buttons="buttons"></Buttons>
                 </span>
               </div>
             </template>
-            <el-option-group
+            <!-- <el-option-group
               v-for="group in optionGroup"
               :key="group.label"
               :label="group.label"
@@ -66,15 +70,16 @@
                 :class="item.disabled ? 'filterInValid' : ''"
               >
                 <span class="option-text">{{ item.value }}</span>
+                <span class="option-icon" v-show="item.isIgnored" v-html="checkedIcon"></span>
               </el-option>
-            </el-option-group>
-            <!-- <el-option
+            </el-option-group> -->
+            <el-option
               v-for="item in filteredOptions"
               :key="item.value"
               :value="item.value"
             >
               <span class="option-text">{{ item.value }}</span>
-            </el-option> -->
+            </el-option>
             <template #tag>
               <div class="select-tag">
                 <span v-if="column.value.length" class="tag-status">{{column.isInclude?'':'NOT'}}</span>
@@ -86,12 +91,46 @@
               </div>
             </template>
             <template #footer>
+              <div v-if="column.ignoredValue.length" class="footer-ignoredList">
+                <div v-if="searchInfo.showSelcetOptions" class="options-title"><span>Ignored selection</span></div>
+                <p class="options-item" v-for="item in ignoredOptions" :key="item.value" @click="handleIgnoredOptions(column,item)">
+                  <span class="options-text">{{ item.value }}</span>
+                  <span class="options-icon" v-show="item.isIgnored" v-html="checkedIcon"></span>
+                </p>
+              </div>
+              <div class="footer-btn">
               <el-radio-group v-model="column.isInclude" @change="handleChange(column)" size="default" class="radio-group" border-color="none" text-color="#ffffff" fill="#69707d">
                 <el-radio-button :label="t('Include')" :value="true" />
                 <el-radio-button :label="t('Exclude')" :value="false" />
               </el-radio-group>
+              </div>
             </template>
           </el-select>
+          <span v-if="column.filedType==='inputNumber'" class="form-item-input-number">
+            <el-input-number
+              v-model="searchInfo.startDays"
+              :min='-42432'
+              :max='1720'
+              :value-on-clear="-42432"
+              clearable
+              controls-position="right"
+              size="large"
+              class="input-number"
+              @change="handleChange"
+            />
+            <span class="input-icon" v-html="rightArrowIcon"></span>
+            <el-input-number
+              v-model="searchInfo.endDays"
+              :min='-42432'
+              :max='1720'
+              :value-on-clear="1720"
+              clearable
+              controls-position="right"
+              size="large"
+              class="input-number"
+              @change="handleChange"
+            />
+          </span>
         </el-col>
       </el-row>
     </div>
@@ -109,24 +148,6 @@
               @handleChangeColumns="handleChangeColumns"
             />
           </div>
-          <!-- <el-table
-            ref="mainTable"
-            v-loading="loading"
-            :data="filteredData"
-            :height="tableHeight"
-            stripe
-            :sort-by="sortBy"
-            :sort-orders="sortOrders"
-            size="small"
-            :header-cell-style="{ 'text-align': 'left', color: '#1a1c21' }"
-            cell-class-name="table-cell"
-            class="custom-table"
-            show-overflow-tooltip
-            v-el-table-infinite-scroll="loadMore"
-            :infinite-scroll-disabled="scrollAble"
-            :infinite-scroll-distance="200"
-            :infinite-scroll-immediate="false"
-          > -->
           <el-table
                 ref="tableRef"
                 v-loading="loading"
@@ -188,7 +209,7 @@
             </el-table-column>
 
             <el-table-column
-              v-for="(column,index) in columns.filter((c) => c.isShow)"
+              v-for="column in columns.filter((c) => c.isShow)"
               :key="`col-${column.name}`"
               :prop="column.name"
               :label="column.name"
@@ -281,8 +302,10 @@ import {
   HideIcon,
   AscSortIcon,
   DescSortIcon,
+  checkedIcon,
+  rightArrowIcon
 } from "../../utils/icons";
-import { debounce } from "@/utils/utils";
+import { debounce,calculateDate } from "@/utils/utils";
 const dropdownIcon = ref(require("@/assets/add-remove-columns.png"));
 
 const isRequestData = ref(false); //true 请求云上数据  false 本地数据
@@ -298,9 +321,12 @@ const searchInfo = reactive({
   selectOptions:[], //下拉框数据
   ignoredOptions:[], //下拉框忽略数据
   currentSelect:[], //当前筛选字段
-  showSelcetOptions:[], //选中的选项显示/隐藏
+  showSelcetOptions:false, //选中的选项显示/隐藏
   colOptions:[], //当前下拉框的数据
-  searchParam:[]
+  searchParam:[],
+  startDays:-42432,
+  endDays:1702,
+  days:[],
 })
 // 表格数据
 const loading = ref(false);
@@ -321,7 +347,7 @@ let lastEvaluatedkey = {};
 const scrollAble = ref(false);
 
 const handleScroll = (e) => {
-  if(e.scrollTop == 0){
+  if(e.scrollTop == 0 || !isRequestData.value){
     return;
   }
  const scrollHeight = tableRef.value.$refs.bodyWrapper.scrollHeight;
@@ -336,7 +362,7 @@ const handleScroll = (e) => {
 
 const page = reactive({
   currentPage: 1,
-  pageSize: 25,
+  pageSize: 100,
   total: 0,
 });
 
@@ -401,7 +427,7 @@ const handleChangeColumns = (cols) => {
 };
 
 onMounted(async () => {
-  loadData();
+  initLoad();
 
   // 首次计算
   handleResize();
@@ -422,17 +448,44 @@ onMounted(async () => {
   });
 });
 
+const initLoad = () =>{
+  const startTime = calculateDate(searchInfo.startDays);
+  const endTime = calculateDate(searchInfo.endDays);
+  searchInfo.days = [startTime,endTime];
+  const param = {
+    type: "logic",
+    logic: "AND", //OR/AND
+    negative: false,
+    items: [{
+      attribute:'warrantyEndDate',
+      operator:'>=',
+      value:startTime
+    },{
+      attribute:'warrantyEndDate',
+      operator:'<=',
+      value:endTime
+    }],
+  }
+  searchInfo.searchParam.push(param)
+  loadData();
+}
+
 const columnWidth = ref(6);
+const columnWidth1 = ref(9);
 const handleResize = () => {
   const screenWidth = window.innerWidth;
   if (screenWidth < 840) {
     columnWidth.value = 24; // 小屏幕时占满整行
+    columnWidth1.value = 24;
   } else if (screenWidth >= 840 && screenWidth < 1245) {
     columnWidth.value = 12; // 中等屏幕时占一半
+    columnWidth1.value = 12;
   } else if (screenWidth >= 992 && screenWidth < 1655) {
     columnWidth.value = 8; // 中等屏幕时占一半
+    columnWidth1.value = 8;
   } else {
     columnWidth.value = 6; // 大屏幕时占三分之一
+    columnWidth1.value = 9;
   }
   calculateTableHeight();
 };
@@ -442,7 +495,7 @@ const loadMore =  debounce( ()=>{
     return;
   }
   let params = {
-      size: 100,
+      size: page.pageSize,
       filterReq: {
         query: searchInfo.searchParam || [],
       },
@@ -453,15 +506,24 @@ const loadMore =  debounce( ()=>{
       .then((result) => {
         loading.value = false;
         const items = result.data.items;
-        if(items.length <page.pageSize*4){
+        if(items.length <page.pageSize){
           scrollAble.value = true;
         }else{
           scrollAble.value = false;
         }
         lastEvaluatedkey = result.data.lastEvaluatedKey;
-        tableData.value = [...tableData.value,...items];
+        tableData.value = [...filteredData.value,...items];
         page.total = tableData.value.length;
-        items.map((v) => {
+        updateTableData(items);
+      })
+      .catch((err) => {
+        loading.value = false;
+        console.error(err?.msg);
+      });
+},500)
+
+const updateTableData = (items) =>{
+  items.map((v) => {
           const keys = Object.keys(v);
           keys.map((col) =>{
             if(!columns.value.some((item) => item.name === col) ){
@@ -469,13 +531,8 @@ const loadMore =  debounce( ()=>{
             }
           })
         });
-        // updateSearchFormData();
-      })
-      .catch((err) => {
-        loading.value = false;
-        console.error(err?.msg);
-      });
-},500)
+        updateSearchFormData();
+}
 
 const handlePopoverBeforeLeave = () => {
   dialogVisible.value = false;
@@ -504,7 +561,7 @@ const handlePopoverShow = (column) => {
 
 const loadData = async () => {
   let params = {
-    size: page.pageSize * 4,
+    size: page.pageSize,
     filterReq: {
       query: searchInfo.searchParam || [],
     },
@@ -515,7 +572,7 @@ const loadData = async () => {
     .then((result) => {
       loading.value = false;
       const items = result.data.items;
-      if (items.length < page.pageSize * 4) {
+      if (items.length < page.pageSize) {
         scrollAble.value = true;
       } else {
         scrollAble.value = false;
@@ -551,11 +608,7 @@ const handleFullData = () =>{
 
 // update search form
 const updateSearchFormData = () =>{
-  
   if(searchInfo.searchFormData.length === 0){
-      // const optionArr = getSelectOptions();
-      // selectOptions.value = optionArr.options;
-      // ignoredOptions.value = [];
       defaultSearchColumns.map((v)=>{
           searchInfo.searchFormData.push({
             label:v,
@@ -565,17 +618,12 @@ const updateSearchFormData = () =>{
             ignoredValue:[],
             searchInput:"",
             sortType:'asc',
-            filterType:'Any'
-            // options:optionArr[v],
+            filterType:'Any',
+            filedType:v==='expireDays' ?'inputNumber':'select',
+            span:(v==='expireDays' || v === 'server') ? columnWidth1 : columnWidth
           })
       });
   }
-  // else if(!isRequestData.value){
-  // const optionArr = getSelectOptions();
-  // selectOptions.value = optionArr.options;
-  // ignoredOptions.value = optionArr.ignoredOptions;
-  // console.log('111111111',optionArr)
-  // }
   const optionArr = getSelectOptions();
   searchInfo.selectOptions = optionArr.options;
   searchInfo.ignoredOptions = optionArr.ignoredOptions || [];
@@ -587,31 +635,26 @@ const getSelectOptions = () => {
   const ignoredOptions = {};
   const data = isRequestData.value ? tableData.value : filteredData.value;
   searchInfo.searchFormData.forEach((column) => {
-    
     const uniqueValues = [
       ...new Set(data.filter(item => item[column.label] != null && item[column.label] !== '').map((item) => item[column.label])),
     ];
-    // const selectedOptions = searchInfo.searchFormData.find((v)=>v.label === column.name); //已选项
     if(column.ignoredValue?.length > 0){
-      
-      // 将 array2 转换为 Set
       const values = new Set(uniqueValues);
       // 筛选出包含的元素
-      // const included = selectedOptions.ignoredValue.filter(item => values.has(item));
+      const included = column.ignoredValue.filter(item => values.has(item));
       // 筛选出不包含的元素
       const excluded = column.ignoredValue.filter(item => !values.has(item));
-      // selectedOptions.value = selectedOptions.ignoredValue;
       column.ignoredValue = excluded;
- 
-      ignoredOptions[column.label] = excluded?.map((option) => {
+      column.value = [...column.value,...included];
+      ignoredOptions[column.label] = column.ignoredValue?.map((option) => {
         return {
           label:column.label,
           value:option,
           // disabled:true
+          isIgnored:true
         }
       }) || [];
     }
-  
     const defaultOptions = searchInfo.selectOptions[column.label];
     if(defaultOptions?.length > 0){
       if(column.label==='modelName1'){
@@ -630,12 +673,6 @@ const getSelectOptions = () => {
         value: value,
       }));
     }
-   
-    // else if((column==='modelName1' || column==='clientCode') && currentSelect.value.label === 'clientCode'){
-    //   options[column] = selectOptions.value[column];
-    // }else{
-      
-    // }
   });
   return {
     options,
@@ -810,21 +847,16 @@ const handleChange = debounce(() => {
   scrollAble.value = false;
   searchInfo.searchFormData.map((columnItem)=>{
     //切换模型，清空其他数据
-    // if(columns.label !== 'modelName1'){
-    //   const columnOptions = searchInfo.selectOptions[columns.prop].map(v=>{
-    //     return v.value
-    //   });
-    //   const excluded = columns.value.filter(v => !columnOptions.includes(v));
-    //   columns.ignoredValue = excluded;
-    //   console.log(columns.prop,'ignoredValue',excluded)
-    // }
     if(searchInfo.currentSelect.label === 'modelName1' && columnItem.label !== 'modelName1'){
+      columnItem.ignoredValue = [...columnItem.ignoredValue,...JSON.parse(JSON.stringify(columnItem.value))];
       columnItem.value = [];
     }
-    // if(searchInfo.currentSelect.label === 'clientCode' && columnItem.label !== 'modelName1'){
-    //   columnItem.value = [];
-    // }
-
+    if(columnItem.label === 'expireDays'){
+      const startTime = calculateDate(searchInfo.startDays);
+      const endTime = calculateDate(searchInfo.endDays);
+      searchInfo.days = [startTime,endTime];
+      columnItem.value = [startTime,endTime]
+    }
     let dataArr = [];
     let item = columnItem.value;
     if(typeof(item) === 'string'){
@@ -843,9 +875,19 @@ const handleChange = debounce(() => {
       if(!columnItem.isInclude){
         params.negative = true;
       }
-      dataArr.map((v) => {
+      dataArr.map((v,index) => {
+        let attribute = columnItem.prop;
+        if(columnItem.label === 'expireDays'){
+          params.logic = 'AND'
+          attribute = 'warrantyEndDate';
+          if(index === 0){
+            operator = '>='
+          }else{
+            operator = '<='
+          }
+        }
         const items = {
-          attribute:columnItem.prop,
+          attribute:attribute,
           operator:operator,
           value:v
         }
@@ -864,34 +906,58 @@ const handleChange = debounce(() => {
 
 const applyFilters = () => {
   page.total = filteredData.value.length;
+  if(page.total < 100){
+    scrollAble.value === false;
+  }else{
+    scrollAble.value === true;
+  }
   updateSearchFormData();
 };
 
+const handleIgnoredOptions = (column,item) =>{
+  const value = item.value;
+  column.ignoredValue = column.ignoredValue.filter(item => item !== value);
+  searchInfo.ignoredOptions[column.label] = searchInfo.ignoredOptions[column.label].filter((v)=>v.value !== value);
+}
+
+//table 数据
 const filteredData = computed(() => {
   if (isRequestData.value) {
     return tableData.value;
   }else{
      return tableData.value.filter(item => {
       return searchInfo.searchFormData.every((column)=>{
-        let searchVal = [];
-        const defaultOptions = searchInfo.selectOptions[column.label];
-        if(!column.isInclude){
-          defaultOptions.some((v)=> {
-            if(!column.value.includes(v.value)){
-              searchVal.push(v.value)
+        if(column.label === 'expireDays'){
+          const itemDate = new Date(item['warrantyEndDate']);
+          const start = new Date(searchInfo.days[0]);
+          const end = new Date(searchInfo.days[1]);
+          return itemDate >= start && itemDate <= end;
+        }else{
+          let searchVal = [];
+          const defaultOptions = searchInfo.selectOptions[column.label];
+          if(!column.isInclude){
+            defaultOptions.some((v)=> {
+              if(!column.value.includes(v.value)){
+                searchVal.push(v.value)
+              }
+            });
+          }else{
+            searchVal = column.value;
+          }
+          if(searchVal.length === 0){
+            if(column.value.length === 1){
+              return searchVal.some((val)=>{
+                return !item[column.prop]?.toString().toLowerCase().includes(val?.toString().toLowerCase());
+              })
+            }else{
+              return true;
             }
-          });
-        }else{
-          searchVal = column.value;
+          }else{
+            return searchVal.some((val)=>{
+              return item[column.prop]?.toString().toLowerCase().includes(val?.toString().toLowerCase());
+            })
+          }
         }
-        if(searchVal.length === 0){
-          return true;
-        }else{
-        return searchVal.some((val)=>{
-          return item[column.prop].toString().toLowerCase().includes(val.toString().toLowerCase());
-        })
-        }
-        
       });
     });
   }
@@ -1124,6 +1190,87 @@ const updatePageData = () => {
   cursor: inherit;
 }
 
+.form-item-input-number{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex: 1;
+  background-color: #ffffff;
+  border: 1px solid #dcdfe6;
+  border-radius: 6px;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.form-item-input-number .input-number{
+   width: 100%;
+   height: 38px;
+   line-height: 38px;
+}
+
+.form-item-input-number .input-number :deep(.el-input-number__decrease),
+.form-item-input-number .input-number :deep(.el-input-number__increase){
+   opacity: 0;
+   width: 25px;
+   border: 1px solid #dcdfe6;
+}
+
+.form-item-input-number .input-number:hover :deep(.el-input-number__decrease),
+.form-item-input-number .input-number:hover :deep(.el-input-number__increase){
+  opacity: 1;
+}
+.form-item-input-number .input-number :deep(.el-input-number__decrease){
+   border-bottom-left-radius: 4px;
+}
+
+.form-item-input-number .input-number :deep(.el-input-number__increase){
+   border-top-left-radius: 4px;
+}
+
+.form-item-input-number .input-number :deep(.el-input__wrapper){
+  box-shadow: none;
+}
+
+.form-item-input-number .input-icon{
+  margin:0px 5px;
+}
+.footer-ignoredList{
+  border-bottom: 1px solid #d3dae6e6;
+  background-color: #FFFFFF;
+  padding: 0px 0px 6px 0px;
+}
+
+.footer-ignoredList .options-title{ 
+  color: rgb(26, 28, 33);
+  line-height: 24px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  padding: 0 10px;
+}
+.footer-ignoredList .options-item{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0;
+  margin: 0;
+  line-height: 34px;
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: #606266;
+  text-decoration: line-through;
+  padding: 0 20px;
+}
+
+.footer-ignoredList .options-item:hover{
+  background-color: var(--el-fill-color-light);
+  cursor: pointer;
+}
+
+.footer-btn{
+   background-color: rgb(247, 248, 252);
+       padding: 10px 10px;
+}
+
 .select-header-options {
   display: inline-flex;
   width: 100%;
@@ -1133,16 +1280,17 @@ const updatePageData = () => {
   padding-top: 5px;
 }
 
-.select-header-options .option-count {
+.select-header-options .option-count{
+  color: rgb(100, 106, 119);
 }
-
+.select-header-options .option-line{
+  margin: 0 6px;
+  border-right: 1px solid #d3dae6;
+  height: 16px;
+}
 .select-header-options .option-btn {
   flex: 1;
   text-align: right;
-}
-
-:deep(.el-select-dropdown__footer) {
-  background-color: rgb(247, 248, 252);
 }
 
 .radio-group {
@@ -1198,6 +1346,11 @@ const updatePageData = () => {
   padding: 10px 10px 5px 10px !important;
 }
 
+.el-select-dropdown__footer {
+  background-color: rgb(247, 248, 252) !important;
+  padding:0px 0px !important;
+  border-top: none !important;
+}
 .option-btn .btn-icon {
   width: 20px;
   height: 20px;

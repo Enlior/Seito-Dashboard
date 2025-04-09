@@ -35,3 +35,16 @@ export const debounce = (func, delay) => {
       }
     }
   }
+
+// 计算日期（加减去输入值）
+export const calculateDate = (val) => {
+    let days = '';
+    if (val) {
+      const currentDate = new Date();
+          const resultDate = new Date(currentDate.getTime() + val * 24 * 60 * 60 * 1000);
+          days = resultDate.toISOString().split('T')[0];
+    }else{
+      days = '';
+    }
+    return days;
+  };

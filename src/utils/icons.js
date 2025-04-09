@@ -33,3 +33,10 @@ export const DescSortIcon = (
   `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" class="euiIcon euiButtonIcon__icon css-e8xmlg-euiIcon-m-inherit" role="img" aria-hidden="true"><path d="M4 10.293V3.5a.5.5 0 0 0-1 0v6.793L1.854 9.146a.5.5 0 1 0-.708.708l2 2a.5.5 0 0 0 .708 0l2-2a.5.5 0 1 0-.708-.708L4 10.293ZM8 4.5a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5ZM8.5 7a.5.5 0 0 0 0 1h4a.5.5 0 0 0 0-1h-4ZM8 10.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1h-2a.5.5 0 0 1-.5-.5Z"></path></svg>`
 );
 
+export const checkedIcon = (
+  `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" class="euiIcon euiSelectableListItem__icon css-1pzk80t-euiIcon-m-text" role="img" aria-hidden="true"><path fill-rule="evenodd" d="M6.5 12a.502.502 0 0 1-.354-.146l-4-4a.502.502 0 0 1 .708-.708L6.5 10.793l6.646-6.647a.502.502 0 0 1 .708.708l-7 7A.502.502 0 0 1 6.5 12"></path></svg>`
+)
+
+export const rightArrowIcon = (
+  `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" class="euiIcon css-1h0bwsh-euiIcon-m-isLoaded" role="img" data-icon-type="sortRight" data-is-loaded="true" aria-label="to" fill="#a8abb2"><path d="M11.692 7H3.556C3.249 7 3 7.224 3 7.5s.249.5.556.5h8.136l-4.096 4.096a.5.5 0 0 0 .707.707l4.243-4.242c.258-.259.403-.587.433-.925a.454.454 0 0 0 0-.272 1.494 1.494 0 0 0-.433-.925L8.303 2.197a.5.5 0 1 0-.707.707L11.692 7Z"></path></svg>`
+)

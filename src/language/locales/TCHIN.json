@@ -21,13 +21,13 @@
 
   "modelName1":"型號名稱",
   "clientCode":"客戶編號",
-  "officeCode":"辦公室編號",
+  "officeCode":"公司編號",
   "clientName1":"客戶名稱",
   "modelType":"型號類型",
   "status":"狀態",
   "handledBy":"經辦人",
   "warrantyType":"保修類型",
-  "reqDateTime":"上傳日期",
+  "expireDays":"過期天數",
   "salesmanCountry":"國家",
   "server":"服務器",
   "deliveredQty":"交付數量",
@@ -78,6 +78,7 @@
 
   "fullData":"雲上數據",
   "option":"選項",
+  "selectionIgnored":"忽略選項",
   "Include":"包含",
   "Exclude":"排除",
   "btn.showTips":"僅顯示選定選項",

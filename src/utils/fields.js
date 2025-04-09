@@ -7,7 +7,7 @@ export const defaultSearchColumns = [
     "status",
     "handledBy",
     "warrantyType",
-    "reqDateTime",
+    "expireDays",
     "salesmanCountry",
     "server",
 ];
