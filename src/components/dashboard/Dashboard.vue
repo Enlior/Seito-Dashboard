@@ -1014,7 +1014,7 @@ const updatePageData = () => {
 
 .header-container {
   display: flex;
-  justify-content: space-around;
+  justify-content:flex-start;
   align-items: center;
   position: relative;
 }
