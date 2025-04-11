@@ -347,7 +347,7 @@ let lastEvaluatedkey = {};
 const scrollAble = ref(false);
 
 const handleScroll = (e) => {
-  if(e.scrollTop == 0 || !isRequestData.value){
+  if(e.scrollTop == 0){
     return;
   }
  const scrollHeight = tableRef.value.$refs.bodyWrapper.scrollHeight;
